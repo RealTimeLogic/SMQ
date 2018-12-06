@@ -10,7 +10,7 @@
  ****************************************************************************
  *   PROGRAM MODULE
  *
- *   $Id: m2m-led-SharkMQ.c 4339 2018-12-06 21:46:30Z wini $
+ *   $Id: m2m-led-SharkMQ.c 4340 2018-12-06 22:56:56Z wini $
  *
  *   COPYRIGHT:  Real Time Logic LLC, 2014 - 2018
  *
@@ -743,7 +743,9 @@ setChaChaCipher(SharkSslCon* scon)
 void
 mainTask(SeCtx* ctx)
 {
+#ifdef SMQ_SEC
    static SharkSsl sharkSsl;
+#endif
    static SharkSslCon* scon;
    static SharkMQ smq;
    static U8 buf[127];

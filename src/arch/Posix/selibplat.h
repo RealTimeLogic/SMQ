@@ -10,7 +10,7 @@
  ****************************************************************************
  *   PROGRAM MODULE
  *
- *   $Id: selibplat.h 3616 2014-12-03 00:40:53Z wini $
+ *   $Id: selibplat.h 3965 2017-02-02 19:53:21Z wini $
  *
  *   COPYRIGHT:  Real Time Logic LLC, 2014
  *
@@ -50,3 +50,71 @@
 #include <fcntl.h>
 #include <netdb.h>
 #include <errno.h>
+#include <stdarg.h>
+
+#ifdef SELIB_C
+
+#define X_se_connect
+int se_connect(int* sock, const char* address, U16 port)
+{
+   int retVal=-3;
+   struct addrinfo* ptr;
+   struct addrinfo* result = 0;
+   if(getaddrinfo(address, 0, 0, &result))
+      return -2;
+   for(ptr=result ; ptr ; ptr=ptr->ai_next)
+   {
+      int sockfd;
+      sockfd=socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
+      if(sockfd < 0)
+      {
+         retVal=-1;
+      }
+      else
+      {
+         int nonBlock=1;
+         if(ptr->ai_family == AF_INET)
+            ((struct sockaddr_in*)ptr->ai_addr)->sin_port = htons(port);
+         else if(ptr->ai_family == AF_INET6)
+            ((struct sockaddr_in6*)ptr->ai_addr)->sin6_port = htons(port);
+         else
+            goto L_close;
+         ioctl(sockfd, FIONBIO, &nonBlock);
+         if(connect(sockfd, ptr->ai_addr, ptr->ai_addrlen) < 0)
+         {
+            if(errno == EINPROGRESS)
+            {
+               struct timeval tv;
+               fd_set fds;
+               FD_ZERO(&fds);
+               FD_SET(sockfd, &fds);
+               tv.tv_sec = 4;
+               tv.tv_usec = 0;
+               if(select(sockfd + 1, 0, &fds, 0, &tv)==1)
+               {
+                  struct sockaddr_in6 in6;
+                  socklen_t size=sizeof(struct sockaddr_in6);
+                  if(!getpeername(sockfd, (struct sockaddr*)&in6, &size))
+                     goto L_ok;
+               }
+            }
+           L_close:
+            retVal=-3;
+            close(sockfd);
+         }
+         else
+         {
+           L_ok:
+            nonBlock=0;
+            ioctl(sockfd, FIONBIO, &nonBlock);
+            *sock=sockfd;
+            retVal=0;
+            break;
+         }
+      }
+   }
+   freeaddrinfo(result);
+   return retVal;
+}
+
+#endif

@@ -10,9 +10,9 @@
  ****************************************************************************
  *   PROGRAM MODULE
  *
- *   $Id: selibplat.h 3631 2014-12-20 16:28:12Z wini $
+ *   $Id: selibplat.h 4331 2018-12-06 20:41:28Z wini $
  *
- *   COPYRIGHT:  Real Time Logic LLC, 2014
+ *   COPYRIGHT:  Real Time Logic LLC, 2014 - 2017
  *
  *   This software is copyrighted by and is the sole property of Real
  *   Time Logic LLC.  All rights, title, ownership, or other interests in
@@ -41,8 +41,83 @@
 
 
 #define SharkSSLWindows
+#ifndef HOST_PLATFORM
 #define HOST_PLATFORM 1
+#endif
 
 #include <string.h>
 #include <windows.h>
 #include <winsock2.h>
+
+#define WINFD_SET(sock,fd) FD_SET((u_int)sock, fd)
+
+#ifdef SELIB_C
+
+#include <ws2tcpip.h>
+
+#ifndef NO_getaddrinfo
+#define X_se_connect
+int se_connect(int* sock, const char* address, U16 port)
+{
+   int retVal=-3;
+   struct addrinfo* ptr;
+   struct addrinfo* result = 0;
+   if(getaddrinfo(address, 0, 0, &result))
+      return -2;
+   for(ptr=result ; ptr ; ptr=ptr->ai_next)
+   {
+      int sockfd;
+      sockfd=socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
+      if(sockfd < 0)
+      {
+         retVal=-1;
+      }
+      else
+      {
+         u_long nonBlock=1;
+         if(ptr->ai_family == AF_INET)
+            ((struct sockaddr_in*)ptr->ai_addr)->sin_port = htons(port);
+         else if(ptr->ai_family == AF_INET6)
+            ((struct sockaddr_in6*)ptr->ai_addr)->sin6_port = htons(port);
+         else
+            goto L_close;
+         ioctlsocket(sockfd, FIONBIO, &nonBlock);
+         if(connect(sockfd, ptr->ai_addr, ptr->ai_addrlen) < 0)
+         {
+            if(WSAGetLastError() == WSAEWOULDBLOCK)
+            {
+               struct timeval tv;
+               fd_set fds;
+               FD_ZERO(&fds);
+               WINFD_SET(sockfd, &fds);
+               tv.tv_sec = 3;
+               tv.tv_usec = 0;
+               if(select(sockfd + 1, 0, &fds, 0, &tv)==1)
+               {
+                  struct sockaddr_in6 in6;
+                  int size=sizeof(struct sockaddr_in6);
+                  if(!getpeername(sockfd, (struct sockaddr*)&in6, &size))
+                     goto L_ok;
+               }
+            }
+           L_close:
+            retVal=-3;
+            closesocket(sockfd);
+         }
+         else
+         {
+           L_ok:
+            nonBlock=0;
+            ioctlsocket(sockfd, FIONBIO, &nonBlock);
+            *sock=sockfd;
+            retVal=0;
+            break;
+         }
+      }
+   }
+   freeaddrinfo(result);
+   return retVal;
+}
+#endif
+
+#endif

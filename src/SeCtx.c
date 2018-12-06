@@ -10,9 +10,9 @@
  ****************************************************************************
  *   PROGRAM MODULE
  *
- *   $Id: SeCtx.c 3619 2014-12-11 19:24:10Z wini $
+ *   $Id: SeCtx.c 4019 2017-03-03 20:24:42Z wini $
  *
- *   COPYRIGHT:  Real Time Logic LLC, 2014
+ *   COPYRIGHT:  Real Time Logic LLC, 2014 - 2017
  *
  *   This software is copyrighted by and is the sole property of Real
  *   Time Logic LLC.  All rights, title, ownership, or other interests in
@@ -101,18 +101,26 @@ SeCtx_saveStackOrSwitchContext(SeCtx* o, U8 switchContext)
 
 #ifdef DYNAMIC_SE_CTX
 void
-SeCtx_constructor(SeCtx* o)
+SeCtx_constructor(SeCtx* o, SeCtxTask* t)
 {
    baAssert(sizeof(int) >= sizeof(void*));
    memset(o, 0, sizeof(SeCtx));
+   o->task=t;
+#ifndef NDEBUG
+   o->magic1 = o->magic2 = 0xAFA5A5F5;
+#endif
    SeCtx_setStackBuf(o, 1000);
 }
 #else
 void
-SeCtx_constructor(SeCtx* o, void* buf, int bufLen)
+SeCtx_constructor(SeCtx* o, SeCtxTask t, void* buf, int bufLen)
 {
    baAssert(sizeof(int) >= sizeof(void*));
    memset(o, 0, sizeof(SeCtx));
+#ifndef NDEBUG
+   o->magic1 = o->magic2 = 0xAFA5A5F5;
+#endif
+   o->task=t;
    o->stackBuf = buf;
    o->stackBufLen = (U16)bufLen;
 }
@@ -125,11 +133,13 @@ SeCtx_save(SeCtx* o)
    int val;
    baAssert( ! o->hasContext );
    baAssert(o->ready == FALSE);
+   baAssert(o->magic1 == 0xAFA5A5F5 && o->magic2== 0xAFA5A5F5);  
    val = setjmp(o->savedContext);
    if(val)
    {
       o = (SeCtx*)val;
       SeCtx_saveStackOrSwitchContext(o, TRUE);
+      baAssert(o->magic1 == 0xAFA5A5F5 && o->magic2== 0xAFA5A5F5);  
    }
    else
    {

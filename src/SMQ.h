@@ -9,9 +9,9 @@
  ****************************************************************************
  *            HEADER
  *
- *   $Id: SMQClient.h 3917 2016-09-19 21:54:49Z wini $
+ *   $Id: SMQ.h 4339 2018-12-06 21:46:30Z wini $
  *
- *   COPYRIGHT:  Real Time Logic LLC, 2014 - 2016
+ *   COPYRIGHT:  Real Time Logic LLC, 2014 - 2018
  *
  *   This software is copyrighted by and is the sole property of Real
  *   Time Logic LLC.  All rights, title, ownership, or other interests in
@@ -35,6 +35,8 @@
 
 #ifndef __SMQClient_h
 #define __SMQClient_h
+
+#define SMQ_NONSEC
 
 #include "selib.h"
 
@@ -602,13 +604,6 @@ inline int SMQ::getMsgSize() {
 #endif
 
 #if SHARKMQ_COMPAT
-typedef struct {int x; } SharkSsl;
-#define SharkSsl_constructor(sharkSsl, type, cache, inSize,outSize)
-#define SharkSsl_setCAList(sharkSsl, sharkSslCAList)
-#define sharkssl_entropy(entropy)
-#define SharkSsl_createCon(sharkSsl) ((void*)~0)
-#define SharkSsl_terminateCon(sharkSsl, scon)
-#define SharkSsl_destructor(sharkSsl)
 #define SharkMQ SMQ
 #define SharkSslCon void
 #define SharkMQ_constructor(o, buf, bufLen) SMQ_constructor(o, buf, bufLen)

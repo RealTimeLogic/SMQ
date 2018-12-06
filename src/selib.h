@@ -10,9 +10,9 @@
  ****************************************************************************
  *   PROGRAM MODULE
  *
- *   $Id: selib.h 3904 2016-08-04 21:38:52Z wini $
+ *   $Id: selib.h 4331 2018-12-06 20:41:28Z wini $
  *
- *   COPYRIGHT:  Real Time Logic LLC, 2014 - 2016
+ *   COPYRIGHT:  Real Time Logic LLC, 2014 - 2018
  *
  *   This software is copyrighted by and is the sole property of Real
  *   Time Logic LLC.  All rights, title, ownership, or other interests in
@@ -37,10 +37,25 @@
 #ifndef _selib_h
 #define _selib_h
 
+/*
+  The SharkSSL compatibility API makes it easy to write code that can
+  later be upgraded to a secure version, if needed.
+*/
+#ifndef SHARKSSL_COMPAT
+#define SHARKSSL_COMPAT 1
+#endif
+
+#ifndef SE_SHA1
+#define SE_SHA1 1
+#endif
+
+
 /** @addtogroup selib
 @{
 */
 
+#ifndef INTEGRAL_TYPES
+#define INTEGRAL_TYPES
 #ifndef XTYPES
 #ifndef NO_C99
 #include <stdint.h>
@@ -63,6 +78,7 @@ typedef unsigned long      U32;
 typedef signed   long      S32;
 typedef unsigned long long U64;
 typedef signed   long long S64;
+#endif
 #endif
 #endif
 
@@ -232,6 +248,36 @@ void mainTask(SeCtx* ctx);
 
 #ifdef __cplusplus
 }
+#endif
+
+
+#if SHARKSSL_COMPAT
+typedef struct {void* x; } SharkSsl;
+#define SharkSsl_constructor(sharkSsl, type, cache, inSize,outSize)
+#define SharkSsl_setCAList(sharkSsl, sharkSslCAList)
+#define sharkssl_entropy(entropy)
+#define SharkSsl_createCon(sharkSsl) ((void*)~0)
+#define SharkSsl_terminateCon(sharkSsl, scon)
+#define SharkSsl_destructor(sharkSsl)
+#define SharkSsl_addCertificate(sharkSsl, cert)
+
+#define SharkSslCon void
+
+#if SE_SHA1
+#define SHARKSSL_SHA1_HASH_LEN      20
+typedef struct SharkSslSha1Ctx
+{
+   U32 total[2];
+   U32 state[5];
+   U8  buffer[64];
+} SharkSslSha1Ctx;
+void  SharkSslSha1Ctx_constructor(SharkSslSha1Ctx* ctx);
+void  SharkSslSha1Ctx_append(SharkSslSha1Ctx* ctx, const U8* data, U32 len);
+void  SharkSslSha1Ctx_finish(SharkSslSha1Ctx*,U8 digest[SHARKSSL_SHA1_HASH_LEN]);
+#endif
+
+
+
 #endif
 
 

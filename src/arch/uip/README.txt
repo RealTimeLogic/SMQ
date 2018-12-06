@@ -1,8 +1,7 @@
-uIP is an extremely small event driven TCP/IP stack. The uIP porting
-layer makes it possible to use the sequential socket library and the
-sequential socket examples in an event driven system. An introduction
-to bare metal (event driven) systems can be found here:
 
+Porting layer for uIP, the two kb TCP/IP stack.
+
+Start by reading:
 https://realtimelogic.com/ba/doc/en/C/shark/group__BareMetal.html
 
 The uIP porting layer has been tested on the uIP stack that comes with
@@ -20,14 +19,28 @@ configuration and hostname lookup (DNS). DHCP and DNS are provided in
 uIP as applications and can be found in the uIP's application sub
 directory.
 
+Compiler include path:
+examples\arch\uip
+examples
+inc
+inc\arch\BareMetal
+
+
+-----------------------------------------------------------
+***** Required uIP modifications
+-----------------------------------------------------------
+
 uIP is optimized for use with one application. Using more
 than one application requires careful configuration; at a
 minimum, three applications will be required: one SharkSSL example, DHCP, and
 DNS.
 
-------------------------
+
+
+
+-----------------------------------------------------------
 ***** Step 1: Modify uIP for multi application use.
-------------------------
+-----------------------------------------------------------
 
 resolv.h: comment out:
 typedef int uip_udp_appstate_t;
@@ -49,7 +62,8 @@ typedef union{
 }uip_udp_appstate_t;
 #endif
 
-#define UIP_UDP_APPCALL() do { if(uip_hostaddr[0]) resolv_appcall(); else dhcpc_appcall(); } while(0)
+#define UIP_UDP_APPCALL() do { \
+  if(uip_hostaddr[0]) resolv_appcall(); else dhcpc_appcall(); } while(0)
 
 #define resolv_found se_resolv_found
 
@@ -79,9 +93,9 @@ Make sure this is set:
 #define UIP_REASSEMBLY 1
 
 
-------------------------
+-----------------------------------------------------------
 ***** Step 2: Include the additional uIP apps required.
-------------------------
+-----------------------------------------------------------
 
 Make sure dhcpc/dhcpc.c and resolv/resolv.c are included in your build.
 
@@ -92,9 +106,9 @@ Make sure resolv_init and resolv_conf are called. Function resolv_conf
 can be called when DHCP is configured as follows:
 resolv_conf((unsigned short*)s->default_router);
 
-------------------------
+-----------------------------------------------------------
 ***** Step 3: Implement timer function.
-------------------------
+-----------------------------------------------------------
 
 Implement function u32_t sys_now(void);
 
@@ -108,9 +122,9 @@ u32_t sys_now(void)
 }
 
 
-------------------------
+-----------------------------------------------------------
 ***** Step 4: Include an allocator.
-------------------------
+-----------------------------------------------------------
 
 SharkSSL requires an allocator. You can use any allocator or the
 included 'umm' allocator. You must compile the code with the following
@@ -119,13 +133,13 @@ macro if you intend to use 'umm'.
 UMM_MALLOC
 
 
-------------------------
+-----------------------------------------------------------
 ***** Step 5: Call SeCtx_run from uIP main loop.
-------------------------
+-----------------------------------------------------------
 
 static char stackbuf[512]; 
 static SeCtx ctx; /* Context Manager (magic stack handler) */
-SeCtx_constructor(&ctx, stackbuf, sizeof(stackbuf));
+SeCtx_constructor(&ctx, mainTask, stackbuf, sizeof(stackbuf));
 while(true)
 {
    ;
@@ -151,27 +165,6 @@ uip_input. We are also calling SeCtx_run when the main loop is idle.
 Function 'SeCtx_run', found in seuip.c, is internally using the
 Context Manager (SeCtx.c).  See the following link for more info on SeCtx.c.
 https://realtimelogic.com/ba/doc/en/C/shark/group__BareMetal.html
-
-You must also include function SeCtx_panic in your code as shown in
-the following example. The Context Manager calls this function if the
-provided stack buffer (stackbuf) is not large enough for saving
-the stack used by the sequential functions. You can trim this buffer
-so it's just big enough for your sequential code. BTW, you should try to
-minimize the number of variables declared on the stack in the
-sequential functions.
-
-void SeCtx_panic(SeCtx* o, U32 size)
-{
-  printf("PANIC: stack size required: %u",size);
-  for(;;); /* stop system */
-}
-
-It is possible to create several Context Managers (SeCtx instances)
-and run several parallel sequential threads, but you will have to
-study the code a bit to find out how this can be done.
-
-SeCtx_run internally calls 'mainTask', which is the entry for all
-socket examples.
 
 ------------------------
 Errors:
@@ -199,61 +192,8 @@ Optimizing SharkSSL for minimum size:
 ------------------------
 
 You probably have severe memory limitations if you use uIP. The
-following macros make the SharkSSL code base less than 20Kb. The
-following settings remove the server functionality and disable all
-ciphers except for ECC and chacha/poly.
+following macro makes the SharkSSL code base less than 20Kb.
 
-SHARKSSL_ACCEPT_CLIENT_HELLO_2_0=0
-SHARKSSL_AES_CIPHER_LOOP_UNROLL=0
-SHARKSSL_BIGINT_EXP_SLIDING_WINDOW_K=1
-SHARKSSL_BIGINT_WORDSIZE=32
-SHARKSSL_DES_CIPHER_LOOP_UNROLL=0
-SHARKSSL_ECC_USE_SECP192R1=0
-SHARKSSL_ECC_USE_SECP224R1=0
-SHARKSSL_ECC_USE_SECP384R1=0
-SHARKSSL_ECC_USE_SECP521R1=0
-SHARKSSL_ENABLE_AES_CCM=0
-SHARKSSL_ENABLE_AES_CTR_MODE=0
-SHARKSSL_ENABLE_AES_GCM=0
-SHARKSSL_ENABLE_CERTSTORE_API=0
-SHARKSSL_ENABLE_CERT_CHAIN=0
-SHARKSSL_ENABLE_CLONE_CERTINFO=0
-SHARKSSL_ENABLE_DHE_RSA=0
-SHARKSSL_ENABLE_ECDHE_RSA=0
-SHARKSSL_ENABLE_ECDH_ECDSA=0
-SHARKSSL_ENABLE_ECDH_RSA=0
-SHARKSSL_ENABLE_MD5_CIPHERSUITES=0
-SHARKSSL_ENABLE_PEM_API=0
-SHARKSSL_ENABLE_PSK=0
-SHARKSSL_ENABLE_RSA=0
-SHARKSSL_ENABLE_RSA_API=0
-SHARKSSL_ENABLE_RSA_BLINDING=1
-SHARKSSL_ENABLE_SELECT_CIPHERSUITE=0
-SHARKSSL_ENABLE_SESSION_CACHE=0
-SHARKSSL_ENABLE_SSL_3_0=0
-SHARKSSL_ENABLE_TLS_1_1=0
-SHARKSSL_MD5_SMALL_FOOTPRINT=1
-SHARKSSL_SHA256_SMALL_FOOTPRINT=1
-SHARKSSL_SSL_SERVER_CODE=0
-SHARKSSL_UNALIGNED_ACCESS=1
-SHARKSSL_USE_3DES=0
-SHARKSSL_USE_AES_128=0
-SHARKSSL_USE_AES_256=0
-SHARKSSL_USE_ARC4=0
-SHARKSSL_USE_DES=0
-SHARKSSL_USE_ECC=1
-SHARKSSL_USE_MD5=0
-SHARKSSL_USE_NULL_CIPHER=0
-SHARKSSL_USE_RNG_TINYMT=1
-SHARKSSL_USE_SHA1=0
-SHARKSSL_USE_SHA_256=0
-SHARKSSL_USE_SHA_512=0
-SHARKSSL_USE_SHA_384=0
-SHARKSSL_OPTIMIZED_BIGINT_ASM=1
-SHARKSSL_OPTIMIZED_CHACHA_ASM=1
-SHARKSSL_OPTIMIZED_POLY1305_ASM=1
-SHARKSSL_ENABLE_CLIENT_AUTH=0
-NDEBUG
+SHARKSSL_TINY
 
-
-
+See the user config file inc/SharkSSL_opts.h for details.

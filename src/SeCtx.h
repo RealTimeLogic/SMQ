@@ -9,9 +9,9 @@
  ****************************************************************************
  *            HEADER
  *
- *   $Id: SeCtx.h 3855 2016-03-10 00:09:47Z wini $
+ *   $Id: SeCtx.h 4019 2017-03-03 20:24:42Z wini $
  *
- *   COPYRIGHT:  Real Time Logic LLC, 2014 - 2016
+ *   COPYRIGHT:  Real Time Logic LLC, 2014 - 2017
  *
  *   This software is copyrighted by and is the sole property of Real
  *   Time Logic LLC.  All rights, title, ownership, or other interests in
@@ -57,6 +57,12 @@
 
 
 #include <setjmp.h>
+#include <TargConfig.h>
+
+struct SeCtx;
+
+/** The task/thread entry point */
+typedef void (*SeCtxTask)(struct SeCtx* ctx);
 
 /** SeCtx structure: See [Context Manager](@ref SeCtx) and
     [Bare Metal Systems](@ref BareMetal) for details.
@@ -64,7 +70,14 @@
 typedef struct SeCtx
 {
    jmp_buf savedContext;
+#ifndef NDEBUG
+   U32 magic1;
+#endif
    jmp_buf startContext;
+#ifndef NDEBUG
+   U32 magic2;
+#endif
+   SeCtxTask task;
    U8* stackTop;
    void* stackBuf;
 #ifndef NDEBUG
@@ -75,25 +88,29 @@ typedef struct SeCtx
    U16 stackBufLen;
    U8 hasContext;
    U8 ready;
+#ifdef SECTX_EX
+   SECTX_EX;
+#endif
 } SeCtx;
 
 #define SeCtx_setStackTop(o, stackMark) \
   (*(stackMark)=1,(o)->stackTop=stackMark,setjmp((o)->startContext))
 
 #ifdef DYNAMIC_SE_CTX
-void SeCtx_constructor(SeCtx* o);
+void SeCtx_constructor(SeCtx* o,SeCtxTask t);
 void SeCtx_destructor(SeCtx* o);
 #else
 
 
 /** Create a Context Manager instance.
     \param o uninitialized data of size sizeof(SeCtx).
+    \param t the task/thread to call
     \param buf buffer used for storing the stack when switching from
     sequential mode to event driven mode.
     \param bufLen buffer length.
     \sa SeCtx_panic
  */
-void SeCtx_constructor(SeCtx* o, void* buf, int bufLen);
+void SeCtx_constructor(SeCtx* o, SeCtxTask t, void* buf, int bufLen);
 #define SeCtx_destructor(o)
 #endif
 

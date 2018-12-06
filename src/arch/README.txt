@@ -6,6 +6,9 @@ selib.h includes selibplat.h, which can be found in the following
 directories:
 
 - Non event based porting layers (RTOS):
+FreeRTOS-TCP    https://www.freertos.org/FreeRTOS-Plus/FreeRTOS_Plus_TCP/
+Harmony         Microchip Harmony TCP/IP
+MDK             Keil MDK
 MQX             MQX and RTCS from Freescale
 NetX            ThreadX and NetX from Express Logic
 Posix           POSIX including Linux, Mac, VxWorks, QNX

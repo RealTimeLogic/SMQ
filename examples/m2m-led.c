@@ -6,12 +6,13 @@
  * /_/ |_|\___/\__,_/_/ /_/ /_/_/ /_/ /_/\___/_____/\____/\__, /_/\___/
  *                                                       /____/
  *
+ *                 SharkSSL Embedded SSL/TLS Stack
  ****************************************************************************
  *   PROGRAM MODULE
  *
- *   $Id: m2m-led.c 3906 2016-08-18 20:54:15Z wini $
+ *   $Id: m2m-led-SharkMQ.c 4339 2018-12-06 21:46:30Z wini $
  *
- *   COPYRIGHT:  Real Time Logic LLC, 2014 - 2016
+ *   COPYRIGHT:  Real Time Logic LLC, 2014 - 2018
  *
  *   This software is copyrighted by and is the sole property of Real
  *   Time Logic LLC.  All rights, title, ownership, or other interests in
@@ -31,11 +32,7 @@
  *               https://realtimelogic.com
  ****************************************************************************
   
-   SharkMQ (secure SMQ) LED example.
-
-
-   NOTE: This example uses the SharkMQ (secure SMQ) compatibility API
-         thus making it easy to upgraded to a secure version, if needed.
+   SMQ LED example.
 
    This code is the device side for the SMQ LED controller, an example
    that enables LEDs in a device to be controlled from a browser and
@@ -43,7 +40,7 @@
 
    When this code runs, it connects to our public SMQ test broker. The
    device will show up as a tab on the following page:
-   http://simplemq.com/m2m-led/
+   https://simplemq.com/m2m-led/
 
    Introductory information on how the complete SMQ LED demo works
    (including the browser UI) can be found online. The device code
@@ -94,16 +91,63 @@
 
 /* Change the domain/url if you are running your own broker
    Note: you can also set the domain at the command prompt when in
-   simulation mode.
- */
-#define SIMPLEMQ_DOMAIN "http://simplemq.com"
-#define SIMPLEMQ_URL SIMPLEMQ_DOMAIN "/smq.lsp"
+   simulation mode. The default settings connect to our online SMQ cluster.
 
-#include "SMQClient.h"
-#include "ledctrl.h"
+Examples:
+   When running this program and Mako Server examples on the same server:
+   Mako examples: https://makoserver.net/documentation/manual/
+   #define SMQ_DOMAIN "https://localhost"
+
+   When running this program on an ESP8266 and connecting to the BAS
+   HW eval kit:
+      https://realtimelogic.com/downloads/docs/BAS-Linkit-Getting-Started.pdf
+   #define SMQ_DOMAIN "https:/barracuda.local/"
+
+   Note: this example can be compiled with SharkMQ or standard SMQ
+   Sec: https://realtimelogic.com/ba/doc/en/C/shark/group__SMQLib.html
+   Std: https://realtimelogic.com/ba/doc/en/C/reference/html/structSMQ.html
+   This example uses the SharkMQ compatibility API when compiled for
+   standard SMQ, thus making it easy to upgraded to a secure version,
+   if needed. The macro SMQ_SEC is defined when SMQ.h is the SharkMQ
+   (secure) version.
+ */
+#include "SMQ.h"
+#define SMQ_DOMAIN "simplemq.com"
+#ifdef SMQ_SEC
+#define SMQ_PROTOCOL "https://"
+#else
+#define SMQ_PROTOCOL "http://"
+#endif
+#define SMQ_URL SMQ_PROTOCOL SMQ_DOMAIN "/smq.lsp"
+
 #include <ctype.h>
 #include <stdlib.h>
+#include <stddef.h>
 
+#include "ledctrl.h"
+
+/*                   sharkSslCAList (Ref-CA)
+
+The data from the include file below is a CA (Certificate Authority)
+Root Certificate. The CA enables SharkSSL to verify the identity of
+realtimelogic.com. We include data for only one CA in this example
+since only the signer of realtimelogi.com's certificate is required
+for validation in this example. See the "certcheck" example for how to
+validate any type of certificate and for more options on how to store
+certificates, in addition to embedding the CA as it is done in this
+example.
+
+The Certification Authority Root Certificate was
+converted to 'sharkSslCAList' as follows:
+SharkSSLParseCAList CA_RTL_EC_256.pem > CA_RTL_EC_256.h
+
+An introduction to certificate management can be found here:
+https://goo.gl/rjdQjg
+
+*/
+#ifdef SMQ_SEC
+#include "certificates/CA_RTL_EC_256.h"
+#endif
 
 
 /****************************************************************************
@@ -112,401 +156,87 @@
  **************************-----------------------***************************
  ****************************************************************************/
 
+/*
+
+The macro HOST_PLATFORM should be set if you are running the example
+on Windows or Linux. The code below provides a simulated version of
+the device functions found in ledctrl.h. See the function
+documentation in this header file for details on how to provide a
+LED/device porting layer for your device.
+
+*/
+
 #if HOST_PLATFORM
 
-static const char* simpleMqUrl; /* defaults to SIMPLEMQ_DOMAIN */
+/* Include the simulated LED environment/functions */
+#include "led-host-sim.ch"
 
-#ifdef _WIN32
-// For calculating unique ID
-#include <Rpc.h>
-#pragma comment(lib, "Rpcrt4.lib")
-#endif
-
-#include <stdio.h>
-
+static const char* simpleMqUrl=0; /* defaults to SMQ_DOMAIN */
 
 /* Enable simulated temperature */
 #ifndef ENABLE_TEMP
 #define ENABLE_TEMP
 #endif
 
-/*
-  The following is used by the logic managing the simulated temperature.
- */
-#define KEY_UP_ARROW 1000
-#define KEY_DOWN_ARROW 1001
-static int currentTemperature=0; /* simulated value */
-
-/* Replace with a function that prints to a console or create a stub
- * that does nothing.
- */
-void
-_xprintf(const char* fmt, ...)
+#ifdef ENABLE_PROXY
+static Proxy proxy;
+static void extractProxyArgs(const char* arg)
 {
-   va_list varg;
-   va_start(varg, fmt);
-   vprintf(fmt, varg);
-   va_end(varg);
-}
-
-
-/* Not needed on host with printf support. This function is designed for
- * embedded systems without console.
- */
-void setProgramStatus(ProgramStatus s)
-{
-   (void)s;
-}
-
-
-
-/* The list of LEDs in the device, the name, color, and ID. Adapt this
-   list to the LEDs on your evaluation board (Ref-LED).
-
-   The LED name shows up in the UI, the LED type tells the UI the
-   color of the LED, and the ID is used as a handle by the UI. The UI
-   will send this handle to the device when sending LED control
-   messages. You can use any number sequence for the ID. We use the
-   sequence 1 to 4 so it's easy to map to a C array.
-
-   This data is encoded as JSON and sent to the UI when a new UI
-   requests the device capabilities.
-*/
-static const LedInfo ledInfo[] = {
+   char* ptr = strdup(arg);
+   const char* proxyName = ptr;
+   ptr = strchr(ptr,':');
+   if(ptr)
    {
-      "LED 1",
-      LedColor_red,
-      1
-   },
-   {
-      "LED 2",
-      LedColor_yellow,
-      2
-   },
-   {
-      "LED 3",
-      LedColor_green,
-      3
-   },
-   {
-      "LED 4",
-      LedColor_blue,
-      4
-   }
-};
-
-const LedInfo*
-getLedInfo(int* len)
-{
-   *len = sizeof(ledInfo) / sizeof(ledInfo[0]);
-   return ledInfo;
-}
-
-/* The LEDs: used by getLedState and setLed
- */
-static int leds[sizeof(ledInfo)/sizeof(ledInfo[1])];
-
-/* Returns the LED on/off state for led with ID 'ledId'. The 'ledId'
-   is the 'handle' sent by the UI.
- */
-int
-getLedState(int ledId)
-{
-   baAssert(ledId >= 1 && ledId <= sizeof(ledInfo)/sizeof(ledInfo[1]));
-   return leds[ledId-1];
-} 
-
-
-/* Set LED on device. The 'ledId' is the 'handle' sent by the UI.
- */
-int
-setLed(int ledId, int on)
-{
-   if(ledId >= 1 && ledId <= sizeof(ledInfo)/sizeof(ledInfo[1]))
-   {
-      printf("Set LED %d %s\n", ledId, on ? "on" : "off");
-      leds[ledId-1] = on;
-      return 0;
-   }
-   return -1;
-}
-
-
-/* The optional function setLedFromDevice requires non blocking
- * keyboard I/O in the simulated version. The following code sets this
- * up for WIN and UNIX. Remove this code for embedded use and change
- * setLedFromDevice as explained below.
- */
-#include <ctype.h>
-#ifdef _WIN32
-
-#include <conio.h>
-#define xkbhit _kbhit
-
-static int
-xgetch()
-{
-   int c = _getch();
-   if(c == 224)
-   {
-      switch(_getch())
+      const char*  port;
+      *ptr = 0;
+      port = ++ptr;
+      ptr = strchr(ptr,':');
+      if(ptr)
       {
-         case 72: return KEY_UP_ARROW;
-         case 80: return KEY_DOWN_ARROW;
+         const char* proxyUserPass=0;
+         int socks=FALSE;
+         int portNo;
+         *ptr++ = 0;
+         portNo = atoi(port);
+         if(strncmp(ptr,"https",5))
+         {
+            if(strncmp(ptr,"socks",5))
+               printUsage();
+            socks=TRUE;
+         }
+         ptr = strchr(ptr,':');
+         if(ptr)
+            proxyUserPass=ptr+1;
+         Proxy_constructor(&proxy,proxyName,(U16)portNo,proxyUserPass,socks);
+         printf("Using %s proxy %s:%d\n",
+                socks ? "SOCKS" : "HTTPS",
+                proxyName,
+                portNo);
+         return;
       }
-      return 'A'; /* dummy value */
    }
-   return c;
-
+   printUsage();
 }
-
-
 #else
+#define extractProxyArgs(arg) printUsage()
+#endif
 
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <sys/ioctl.h>
-#include <net/if.h>
-#include <termios.h>
-/* UNIX kbhit and getch simulation */
-static struct termios orgTs;
-
-static void
-resetTerminalMode()
+static void  printUsage(void)
 {
-   tcsetattr(0, TCSANOW, &orgTs);
-}
-
-static void
-setConioTerminalMode()
-{
-   struct termios asyncTs;
-   tcgetattr(0, &orgTs);
-   memcpy(&asyncTs, &orgTs, sizeof(asyncTs));
-   /* register cleanup handler, and set the new terminal mode */
-   atexit(resetTerminalMode);
-   cfmakeraw(&asyncTs);
-   asyncTs.c_oflag=orgTs.c_oflag;
-   tcsetattr(0, TCSANOW, &asyncTs);
-}
-
-static int
-xkbhit()
-{
-   struct timeval tv = { 0L, 0L };
-   fd_set fds;
-   FD_ZERO(&fds);
-   FD_SET(0, &fds);
-   return select(1, &fds, NULL, NULL, &tv);
-}
-
-static int
-xgetch()
-{
-   int r;
-   unsigned char c;
-   if ((r = read(0, &c, sizeof(c))) < 0)
-      return r;
-   if(c == 3) /* CTRL-C Linux */
-      exit(0);
-   if(c == 27)
-   {
-      U16 x;
-      read(0, &x, sizeof(x));
-      switch(x)
-      {
-         case 0x415B: return KEY_UP_ARROW;
-         case 0x425B: return KEY_DOWN_ARROW;
-      }
-      return 'A'; /* dummy value */
-   }
-   return c;
-}
-
-static void
-die(const char* fmt, ...)
-{
-   va_list varg;
-   va_start(varg, fmt);
-   vprintf(fmt, varg);
-   va_end(varg);
+   printf("m2m-led [-bURL]");
+#ifdef ENABLE_PROXY
+   printf(" [-pname:port:https:socks[:username:password]]");
+#endif
    printf("\n");
    exit(1);
 }
 
-static void
-getMacAddr(char macaddr[6], const char* ifname)
-{
-   char buf[8192] = {0};
-   struct ifconf ifc = {0};
-   struct ifreq *ifr = NULL;
-   int sck = 0;
-   int nInterfaces = 0;
-   int i = 0;
-   struct ifreq *item;
-   struct sockaddr *addr;
-   /* Get a socket handle. */
-   sck = socket(PF_INET, SOCK_DGRAM, 0);
-   if(sck < 0) 
-      die("socket: %s",strerror(errno));
-   /* Query available interfaces. */
-   ifc.ifc_len = sizeof(buf);
-   ifc.ifc_buf = buf;
-   if(ioctl(sck, SIOCGIFCONF, &ifc) < 0) 
-      die("ioctl(SIOCGIFCONF) %s", strerror(errno));
-   /* Iterate through the list of interfaces. */
-   ifr = ifc.ifc_req;
-   nInterfaces = ifc.ifc_len / sizeof(struct ifreq);
-   for(i = 0; i < nInterfaces; i++) 
-   {
-      unsigned long ipaddr;
-      item = &ifr[i];
-      addr = &(item->ifr_addr);
-      /* Get the IP address*/
-      if(ioctl(sck, SIOCGIFADDR, item) < 0) 
-      {
-         perror("ioctl(OSIOCGIFADDR)");
-         continue;
-      }
-      ipaddr = ((struct sockaddr_in *)addr)->sin_addr.s_addr;
-      if(0x100007F == ipaddr || 0 == ipaddr)
-         continue;
-      /* Get the MAC address */
-      if(ioctl(sck, SIOCGIFHWADDR, item) < 0) {
-         perror("ioctl(SIOCGIFHWADDR)");
-         continue;
-      }
-      break;
-   }
-   close(sck);   
-   if(i == nInterfaces)
-      die("Cannot get a MAC address\n");
-   memcpy(macaddr, item->ifr_hwaddr.sa_data, 6);
-}
-#endif
-/* Endif UNIX/Linux specific code */
 
 
-/* Optional function that can be used to turn an LED on/off from the
-   device by using buttons. The function must return TRUE if a button
-   was pressed, otherwise FALSE must be returned. The LED state on/off
-   information is managed by the online web service. 
-*/
-int
-setLedFromDevice(int* ledId, int* on)
-{
-   int ledLen;
-   const LedInfo* ledInfo = getLedInfo(&ledLen);
-   if(xkbhit())
-   {
-      int base,i;
-      int c = xgetch();
-      if(c == KEY_UP_ARROW)
-      {
-         currentTemperature += 8; /* increment by 0.8 celcius */
-         return 0;
-      }
-      if(c == KEY_DOWN_ARROW)
-      {
-         currentTemperature -= 8; /* decrement by 0.8 celcius */
-         return 0;
-      }
-      if(isupper(c))
-      {
-         *on=1;
-         base='A';
-      }
-      else
-      {
-         *on=0;
-         base='a';
-      }
-      c -= base;
-      base=0;
-      for(i = 0 ; i < ledLen ; i++)
-      {
-         if(ledInfo[i].id == c)
-         {
-            base=1;
-            break;
-         }
-      }
-      if(base)
-      {
-         *ledId = c;
-         return 1;
-      }
-      printf("Invalid LedId %d. Valid keys (upper/lower): ",c);
-      for(i = 0 ; i < ledLen ; i++)
-         printf("%c ",'A'+ledInfo[i].id);
-      printf("\n");
-   }
-
-   { /* Print out usage info at startup */
-      static int oneshot=0;
-      if( ! oneshot )
-      {
-         oneshot = 1;
-         xprintf(
-            ("Set LED from keyboard. Uppercase = ON, lowercase = OFF.\n"
-             "Switching LED state updates UI in all connected browsers.\n"));
-      }
-   }
-   return 0;
-}
-
-
-int getTemp(void)
-{
-   return currentTemperature;
-}
-
-
-const char* getDevName(void)
-{
-   static char devInfo[100];
-   char* ptr;
-   strcpy(devInfo,"Simulated Device: ");
-   ptr = devInfo + strlen(devInfo);
-   gethostname(ptr, 100 - (ptr - devInfo));
-   return devInfo;
-}
-
-
-static void printUniqueID(const char* uuid, int uuidLen)
-{
-   int i;
-   printf("UUID: ");
-   for(i = 0 ; i < uuidLen ; i++)
-      printf("%X ", (unsigned int)((U8)uuid[i]));
-   printf("\n");
-}
-
-
-int getUniqueId(const char** id)
-{
-#ifdef _WIN32
-   UUID winid;
-   static char uuid[8];
-   if(RPC_S_OK == UuidCreateSequential(&winid))
-      memcpy(uuid,winid.Data4,8);
-   else
-      memset(uuid,0,8);
-   printUniqueID(uuid, 8);
-   *id = uuid;
-   return 8;
-#else
-   static char addr[6];
-   getMacAddr(addr, "eth0");
-   printUniqueID(addr, 6);
-   *id = addr;
-   return 6;
-#endif
-}
-
+#ifndef NO_MAIN
 int main(int argc, char* argv[])
 {
+   int i;
 #ifdef _WIN32
    WSADATA wsaData;
    /* Windows specific: Start winsock library */
@@ -515,25 +245,61 @@ int main(int argc, char* argv[])
    setConioTerminalMode();
 #endif
 
-   if(argc > 1)
-   {
-      simpleMqUrl = argv[1];
-      xprintf(("Overriding broker URL\n\tfrom %s\n\tto %s\n%s\n\n",
-               SIMPLEMQ_URL,simpleMqUrl,
-               "Note: error messages will include original broker name"));
+   printf("%sEnter %s -? for information on optional arguments.\n\n",
+#ifdef SMQ_SEC
+          "SharkMQ/SharkSSL SMQ LED Demo.\n"
+#else
+          "SMQ LED Demo.\n"
+#endif
+          "Copyright (c) 2018 Real Time Logic.\n",
+          argv[0]);
 
-   }
-   else
+   for(i=1 ; i < argc ; i++)
    {
-      simpleMqUrl = SIMPLEMQ_URL;
-   }
+      char* ptr = argv[i];
+      if(*ptr++ == '-')
+      {
+         switch(*ptr)
+         {
+            case 'b':
+               simpleMqUrl = ++ptr;
+               xprintf(("Overriding broker URL\n\tfrom %s\n\tto %s\n%s\n\n",
+                        SMQ_URL,simpleMqUrl,
+                        "Note: error messages will include original "
+                        "broker name"));
+               break;
 
+            case 'p':
+               extractProxyArgs(++ptr);
+               break;
+                  
+            default:
+               printUsage();
+         }
+      }
+      else
+         printUsage();
+   }
+   if(!simpleMqUrl)
+      simpleMqUrl = SMQ_URL;
    mainTask(0);
    printf("Press return key to exit\n");
    getchar();
    return 0;
 }
+#endif
 
+#ifdef ENABLE_PROXY
+static void setProxy(SharkMQ* smq)
+{
+   if(proxy.connect)
+      SharkMQ_setProxy(smq, &proxy);
+}
+#else
+#define setProxy(x)
+#endif
+#else /* HOST_PLATFORM */
+#define setProxy(x)
 #endif /* HOST_PLATFORM */
 
 
@@ -599,7 +365,7 @@ int getUniqueId(const char** id)
 
 
 
-
+/* Type to string conv. */
 static const char*
 ledType2String(LedColor t)
 {
@@ -726,10 +492,13 @@ m2mled(SharkMQ* smq, SharkSslCon* scon,
 /* We make it possible to override the URL at the command prompt when
  * in simulation mode.
  */
-#if HOST_PLATFORM
+#if HOST_PLATFORM && !defined(NO_MAIN)
    const char* str=simpleMqUrl;
 #else
-   const char* str=SIMPLEMQ_URL;
+   const char* str=SMQ_URL;
+#endif
+#ifndef SMQ_SEC
+   (void)scon;
 #endif
 
    xprintf(("Connecting to %s\n", str));
@@ -745,18 +514,48 @@ m2mled(SharkMQ* smq, SharkSslCon* scon,
             setProgramStatus(ProgramStatus_SocketError);
             break;
          case -2:
-            str="Cannot resolve IP address for " SIMPLEMQ_DOMAIN ".";
+            str="Cannot resolve IP address for " SMQ_DOMAIN ".";
             setProgramStatus(ProgramStatus_DnsError);
             break;
-         default:
-            str="Cannot connect to " SIMPLEMQ_DOMAIN ".";
+         case SMQE_INVALID_URL:
+            str="Invalid URL.";
             setProgramStatus(ProgramStatus_ConnectionError);
             break;
+
+#ifdef ENABLE_SOCKS_PROXY
+         case E_PROXY_AUTH: str="E_PROXY_AUTH"; break;
+         case E_PROXY_GENERAL: str="E_PROXY_GENERAL"; break;
+         case E_PROXY_NOT_ALLOWED: str="E_PROXY_NOT_ALLOWED"; break;
+         case E_PROXY_NETWORK: str="E_PROXY_NETWORK"; break;
+         case E_PROXY_HOST: str="E_PROXY_HOST"; break;
+         case E_PROXY_REFUSED: str="E_PROXY_REFUSED"; break;
+         case E_PROXY_TTL: str="E_PROXY_TTL"; break;
+         case E_PROXY_COMMAND_NOT_SUP: str="E_PROXY_COMMAND_NOT_SUP"; break;
+         case E_PROXY_ADDRESS_NOT_SUP: str="E_PROXY_ADDRESS_NOT_SUP"; break;
+         case E_PROXY_NOT_COMPATIBLE: str="E_PROXY_NOT_COMPATIBLE"; break;
+         case E_PROXY_UNKNOWN: str="E_PROXY_UNKNOWN"; break;
+         case E_PROXY_CLOSED: str="E_PROXY_CLOSED"; break;
+         case E_PROXY_CANNOTCONNECT: str="E_PROXY_CANNOTCONNECT"; break;
+#endif
+         default:
+            str="Cannot connect to " SMQ_DOMAIN ".";
+            setProgramStatus(ProgramStatus_ConnectionError);
       }
       xprintf(("%s\n", str));
       /* Cannot reconnect if any of the following are true: */
-      return smq->status==SMQE_BUF_OVERFLOW || smq->status==SMQE_INVALID_URL;
+      return
+         smq->status==SMQE_BUF_OVERFLOW ||
+         smq->status==SMQE_INVALID_URL ||
+         smq->status <= -1000; /* Proxy error codes */
    }
+#ifdef SMQ_SEC
+   else if(smq->status != SharkSslConTrust_CertCn)
+   {
+      setProgramStatus(ProgramStatus_CertificateNotTrustedError);
+      xprintf(("%cWARNING: certificate received from %s not trusted!\n",
+               7,SMQ_DOMAIN));
+   }
+#endif
 
    /* Fetch the IP address sent by the broker. We use this for the
     * text shown in the left pane tab in the browser's user interface.
@@ -772,7 +571,7 @@ m2mled(SharkMQ* smq, SharkSslCon* scon,
       return smq->status == SMQE_BUF_OVERFLOW || smq->status > 0;
    }
 
-   xprintf(("\nConnected to %s.\n"
+   xprintf(("\nConnected to: %s\n"
             "Use a browser and navigate to this domain.\n\n",
             str));
    setProgramStatus(ProgramStatus_DeviceReady);
@@ -959,12 +758,19 @@ mainTask(SeCtx* ctx)
       return;
    }
 
+#ifdef SMQ_SEC
    SharkSsl_constructor(&sharkSsl,
                         SharkSsl_Client, /* Two options: client or server */
                         0,      /* Not using SSL cache */
+#if DUPTR==U64 /* if 64 bit CPU: larger buffer required */
+                        3000,   /* initial inBuf size: Can grow */
+                        3000      /* outBuf size: Fixed */
+#else
                         2000,   /* initial inBuf size: Can grow */
-                        2000);  /* outBuf size: Fixed */
-
+                        2000      /* outBuf size: Fixed */
+#endif
+      );
+#endif
 
    /* (Ref-CA)
       The following construction force the server to authenticate itself by
@@ -996,9 +802,10 @@ mainTask(SeCtx* ctx)
 
    SharkMQ_constructor(&smq, buf, sizeof(buf));
    SharkMQ_setCtx(&smq, ctx);  /* Required for non RTOS env. */
+   setProxy(&smq); /* Implemented for host build */
 
    /* It is very important to seed the SharkSSL RNG generator */
-   sharkssl_entropy(baGetUnixTime() ^ (U32)&sharkSsl);
+   sharkssl_entropy(baGetUnixTime() ^ (ptrdiff_t)&sharkSsl);
    scon = SharkSsl_createCon(&sharkSsl);
    setChaChaCipher(scon);
    setProgramStatus(ProgramStatus_Starting);

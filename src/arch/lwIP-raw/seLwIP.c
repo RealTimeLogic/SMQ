@@ -10,7 +10,7 @@
  ****************************************************************************
  *   PROGRAM MODULE
  *
- *   $Id: seLwIP.c 3782 2015-11-06 18:37:14Z wini $
+ *   $Id: seLwIP.c 3940 2016-12-02 22:50:11Z wini $
  *
  *   COPYRIGHT:  Real Time Logic LLC, 2014
  *
@@ -478,7 +478,7 @@ SeCtx_run(SeCtx* ctx)
    }
    else if( ! SeCtx_setStackTop(ctx, &stackMark) )
    {
-      mainTask(ctx);
+      ctx->task(ctx);
       return -1;
    }
    return 0;

@@ -10,7 +10,7 @@
  ****************************************************************************
  *   PROGRAM MODULE
  *
- *   $Id: seNetX.c 3843 2016-02-11 23:18:28Z wini $
+ *   $Id: seNetX.c 3938 2016-11-23 18:01:07Z wini $
  *
  *   COPYRIGHT:  Real Time Logic LLC, 2013 - 2014
  *
@@ -212,7 +212,7 @@ int se_connect(SOCKET* sock, const char* address, U16 port)
 void se_close(SOCKET* sock)
 {
    NX_TCP_SOCKET* nxs = &sock->nxSock;
-   if(&sock->nxFirstPacket)
+   if(sock->nxFirstPacket)
    {
       nx_packet_release(sock->nxFirstPacket);
       sock->nxFirstPacket=0;

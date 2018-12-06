@@ -9,9 +9,9 @@
  ****************************************************************************
  *   PROGRAM MODULE
  *
- *   $Id: SMQClient.c 3916 2016-09-05 00:31:24Z wini $
+ *   $Id: SMQClient.c 4339 2018-12-06 21:46:30Z wini $
  *
- *   COPYRIGHT:  Real Time Logic LLC, 2014 - 2016
+ *   COPYRIGHT:  Real Time Logic LLC, 2014 - 2018
  *
  *   This software is copyrighted by and is the sole property of Real
  *   Time Logic LLC.  All rights, title, ownership, or other interests in
@@ -33,7 +33,7 @@
  */
 
 
-#include "SMQClient.h"
+#include "SMQ.h"
 #include <ctype.h>
 
 #define MSG_INIT         1
@@ -293,8 +293,8 @@ L_defPorts:
 
    /* Get the Init message */
    if(SMQ_readFrame(o, FALSE)) return o->status;
-   if(o->frameLen < 14 || o->buf[2] != MSG_INIT || o->buf[3] != SMQ_VERSION)
-      return SMQE_PROTOCOL_ERROR;
+   if(o->frameLen < 11 || o->buf[2] != MSG_INIT || o->buf[3] != SMQ_VERSION)
+      return o->status=SMQE_PROTOCOL_ERROR;
    if(rnd)
       netConvU32((U8*)rnd,o->buf+4);
    memmove(o->buf, o->buf+8, o->frameLen-8);

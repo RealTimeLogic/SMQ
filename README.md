@@ -33,6 +33,6 @@ The VcMake directory contains Visual Studio build files. The included Makefile c
 
 ## Build instructions for embedded systems
 
-The example code m2m-led.c requires porting to your embedded board's LED(s). See the [Interfacing LED Demo Programs to Hardware](https://realtimelogic.com/ba/doc/en/C/shark/md_md_Examples.html#LedDemo) tutorial for details.
+The example code m2m-led.c requires porting to your embedded board's LED(s). See the tutorial [Interfacing LED Demo Programs to Hardware](https://realtimelogic.com/ba/doc/en/C/shark/md_md_Examples.html#LedDemo) for details.
 
 See the src/arch directory for cross compiling details.

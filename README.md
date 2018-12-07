@@ -1,6 +1,6 @@
 # SMQ C Client Library
 
-SMQ C client library for microcontrollers. The library includes porting layers to many RTOS environments, including bare metal.
+SMQ C client library for microcontrollers. The library includes porting layers for many RTOS environments, including bare metal.
 
 SMQ, based on the publish - subscribe pattern, provides features similar to other pub/sub protocols such as MQTT. However, SMQ extends the pub/sub pattern with additional features such as one-to-one messaging and sender's address, features typically required in device management.
 

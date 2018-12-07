@@ -1,76 +1,36 @@
+# SMQ C Client Library
 
+SMQ C client library for microcontrollers. The library includes porting layers to many RTOS environments, including bare metal.
 
-                        SimpleMQ C Client library
+SMQ, based on the publish - subscribe pattern, provides features similar to other pub/sub protocols such as MQTT. However, SMQ extends the pub/sub pattern with additional features such as one-to-one messaging and sender's address, features typically required in device management.
 
-Simple Message Queue (SMQ) is an easy to use "Internet of Things" IoT
-/ M2M "Machine-to-Machine" publish subscribe connectivity protocol
-designed and optimized for embedded systems.
+**[See the SMQ home page for details](https://realtimelogic.com/products/simplemq/)**
 
+# License
 
-------- License:
-The source code is released under the Eclipse Public License
-http://en.wikipedia.org/wiki/Eclipse_Public_License
-https://www.eclipse.org/legal/epl-v10.html
+The source code is released under the **Eclipse Public License - V 2.0**: [https://www.eclipse.org/legal/epl-v20.html](https://www.eclipse.org/legal/epl-v20.html)
 
-You may compile a Program licensed under the EPL without modification
-and commercially license the result in accordance with the terms of
-the EPL: https://eclipse.org/legal/eplfaq.php
+You may compile a Program licensed under the EPL without modification and commercially license the result in accordance with the [terms of the EPL](https://www.eclipse.org/legal/epl-2.0/faq.php).
 
+This Source Code may also be made available under the following Secondary Licenses when the conditions for such availability set forth in the Eclipse Public License, v. 2.0 are satisfied: **GNU General Public License, version 2**.
 
-------- Documentation:
-https://realtimelogic.com/ba/doc/?url=SMQ.html
+# Documentation
+
+* [SMQ documentation](https://realtimelogic.com/ba/doc/?url=SMQ.html)
+* [SMQ C client library reference manual](https://realtimelogic.com/ba/doc/en/C/reference/html/group__SMQClient.html)
+
 https://realtimelogic.com/ba/doc/en/C/reference/html/group__SMQClient.html
 
+# Compiling
 
-------- Porting example code m2m-led.c to your embedded target platform:
+The build includes the SMQ library and a LED demonstration program. The LED demonstration program connects to the [online public test broker](https://realtimelogic.com/IoT-LED-Cluster.html) . Initially, you may want to test the LED example by compiling and running the example code using the [ready to use online C compiler setup](https://repl.it/@RTL/SMQ-LED-Demo) .
 
-The example code m2m-led.c requires porting to your embedded board's
-LED(s). See the following for more information:
-https://realtimelogic.com/ba/doc/en/C/shark/md_md_Examples.html#LedDemo
+## Build instructions for Windows, Linux, and Mac
 
+The VcMake directory contains Visual Studio build files. The included Makefile compiles the library and the example program on any Linux/Mac computer.
 
-------- Compiling:
+## Build instructions for embedded systems
 
-The build includes the SMQ library and a LED demonstration
-program. The LED demonstration program connects to our online public
-broker.
+The example code m2m-led.c requires porting to your embedded board's LED(s). See the [Interfacing LED Demo Programs to Hardware](https://realtimelogic.com/ba/doc/en/C/shark/md_md_Examples.html#LedDemo) tutorial for details.
 
-https://simplemq.com/m2m-led/
-
--- Build instructions for Windows, Linux, and embedded systems:
-
-The VcMake directory contains Visual Studio build files. You can
-download the compiler here:
-http://www.visualstudio.com/en-us/downloads#d-2010-express
-
-The included Makefile compiles the library and the example program on
-any Linux computer.
-
-You can compile the code for the supported embedded systems. See
-src/arch/README.txt for details.
-
-------- Downloading the broker (SMQ server):
-
-The example program connects to our online broker. After testing with
-our online broker, change the URL in the C code, recompile, and test
-with your own broker.
-
-Broker: https://makoserver.net/smq-broker/
-
-
-------- Non secure v.s. secure SMQ library
-
-The m2m-led.c example uses the SharkMQ compatible API, which makes it
-easy to upgrade the example to a secure connection should it be
-required for your project. SharkMQ is the secure version of the
-standard SMQ client library.
-
-More information on the secure SharkMQ library can be found on our web site:
-https://realtimelogic.com/products/sharkssl/SharkMQ/
-SharkMQ documentation:
-https://realtimelogic.com/ba/doc/en/C/shark/group__SMQLib.html
-
-------- Additional libraries:
-
-SimpleMQ can be used in combination with our JSON library:
-https://realtimelogic.com/products/json/
+See the src/arch directory for cross compiling details.

@@ -19,11 +19,13 @@ This Source Code may also be made available under the following Secondary Licens
 * [SMQ documentation](https://realtimelogic.com/ba/doc/?url=SMQ.html)
 * [SMQ C client library reference manual](https://realtimelogic.com/ba/doc/en/C/reference/html/group__SMQClient.html)
 
-https://realtimelogic.com/ba/doc/en/C/reference/html/group__SMQClient.html
 
 # Compiling
 
-The build includes the SMQ library and a LED demonstration program. The LED demonstration program connects to the [online public test broker](https://realtimelogic.com/IoT-LED-Cluster.html) . Initially, you may want to test the LED example by compiling and running the example code using the [ready to use online C compiler setup](https://repl.it/@RTL/SMQ-LED-Demo) .
+The build includes the SMQ library and a LED demonstration program. The LED demonstration program connects to the [online public test broker](https://realtimelogic.com/IoT-LED-Cluster.html) . Initially, you may want to test the LED example by compiling and running the example code using the [ready to use online C compiler setup](https://repl.it/@RTL/SMQ-LED-Demo). See the following video for details on using the online compiler.
+
+[![Compile SMQ](https://img.youtube.com/vi/qQ50565LN_M/0.jpg)](https://www.youtube.com/watch?v=qQ50565LN_M)
+
 
 ## Build instructions for Windows, Linux, and Mac
 

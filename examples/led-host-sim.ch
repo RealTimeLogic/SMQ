@@ -55,7 +55,7 @@ See this header file for detailed explanation.
  */
 #define KEY_UP_ARROW 1000
 #define KEY_DOWN_ARROW 1001
-static int currentTemperature=0; /* simulated value */
+static int currentTemperature=200; /* simulated value */
 
 /* Replace with a function that prints to a console or create a stub
  * that does nothing.
@@ -334,11 +334,15 @@ setLedFromDevice(int* ledId, int* on)
       if(c == KEY_UP_ARROW)
       {
          currentTemperature += 8; /* increment by 0.8 celcius */
+         if(currentTemperature > 1000)
+            currentTemperature=1000;
          return 0;
       }
       if(c == KEY_DOWN_ARROW)
       {
          currentTemperature -= 8; /* decrement by 0.8 celcius */
+         if(currentTemperature < 0)
+            currentTemperature=0;
          return 0;
       }
       if(isupper(c))
@@ -378,8 +382,8 @@ setLedFromDevice(int* ledId, int* on)
       {
          oneshot = 1;
          xprintf(
-            ("Set LED from keyboard. Uppercase = ON, lowercase = OFF.\n"
-             "Switching LED state updates UI in all connected browsers.\n"));
+            ("\nled-host-sim.ch:\n"
+             "Set LED from keyboard. Uppercase = ON, lowercase = OFF.\n\n"));
       }
    }
    return 0;

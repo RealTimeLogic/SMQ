@@ -12,7 +12,7 @@
  *
  *   $Id$
  *
- *   COPYRIGHT:  Real Time Logic LLC, 2018
+ *   COPYRIGHT:  Real Time Logic LLC, 2019
  *
  *   This software is copyrighted by and is the sole property of Real
  *   Time Logic LLC.  All rights, title, ownership, or other interests in
@@ -201,6 +201,17 @@ xgetch()
 /* UNIX kbhit and getch simulation */
 static struct termios orgTs;
 
+#if __APPLE__
+#define HAVE_GETIFADDRS
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <ifaddrs.h>
+#include <net/if_dl.h>
+#elif __linux__
+#define HAVE_SIOCGIFHWADDR
+#endif
+
+
 static void
 resetTerminalMode()
 {
@@ -267,6 +278,7 @@ die(const char* fmt, ...)
 static void
 getMacAddr(char macaddr[6], const char* ifname)
 {
+#if defined(HAVE_SIOCGIFHWADDR)
    char buf[8192] = {0};
    struct ifconf ifc = {0};
    struct ifreq *ifr = NULL;
@@ -310,8 +322,37 @@ getMacAddr(char macaddr[6], const char* ifname)
    }
    close(sck);   
    if(i == nInterfaces)
-      die("Cannot get a MAC address\n");
+      die("Cannot find a MAC address\n");
    memcpy(macaddr, item->ifr_hwaddr.sa_data, 6);
+#elif defined(HAVE_GETIFADDRS)
+   struct ifaddrs* iflist;
+   BaBool found = FALSE;
+   if (getifaddrs(&iflist) == 0)
+   {
+      struct ifaddrs* cur;
+      for (cur = iflist; cur; cur = cur->ifa_next)
+      {
+         if ((cur->ifa_addr->sa_family == AF_LINK) &&
+             (strcmp(cur->ifa_name, "lo0") == 0) &&
+             cur->ifa_addr)
+         {
+            struct sockaddr_dl* sdl;
+            sdl = (struct sockaddr_dl*)cur->ifa_addr;
+            memcpy(macaddr, LLADDR(sdl), sdl->sdl_alen);
+            found = TRUE;
+            break;
+         }
+      }
+      freeifaddrs(iflist);
+   }
+   if( ! found )
+      die("Cannot find a MAC address\n");
+#else
+#error No MAC address on this platform?
+#endif
+
+
+
 }
 #endif
 /* Endif UNIX/Linux specific code */

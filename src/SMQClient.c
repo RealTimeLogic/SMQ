@@ -9,9 +9,9 @@
  ****************************************************************************
  *   PROGRAM MODULE
  *
- *   $Id: SMQClient.c 4339 2018-12-06 21:46:30Z wini $
+ *   $Id: SMQClient.c 4352 2019-01-31 23:04:22Z wini $
  *
- *   COPYRIGHT:  Real Time Logic LLC, 2014 - 2018
+ *   COPYRIGHT:  Real Time Logic LLC, 2014 - 2019
  *
  *   This software is copyrighted by and is the sole property of Real
  *   Time Logic LLC.  All rights, title, ownership, or other interests in
@@ -57,7 +57,8 @@
 
 
 
-#define SMQ_VERSION 1
+#define SMQ_S_VERSION 1
+#define SMQ_C_VERSION 2
 
 #if defined(B_LITTLE_ENDIAN)
 static void
@@ -293,7 +294,7 @@ L_defPorts:
 
    /* Get the Init message */
    if(SMQ_readFrame(o, FALSE)) return o->status;
-   if(o->frameLen < 11 || o->buf[2] != MSG_INIT || o->buf[3] != SMQ_VERSION)
+   if(o->frameLen < 11 || o->buf[2] != MSG_INIT || o->buf[3] != SMQ_S_VERSION)
       return o->status=SMQE_PROTOCOL_ERROR;
    if(rnd)
       netConvU32((U8*)rnd,o->buf+4);
@@ -311,7 +312,9 @@ SMQ_connect(SMQ* o, const char* uid, int uidLen, const char* credentials,
    if(o->bufLen < 5+uidLen+credLen+infoLen) return SMQE_BUF_OVERFLOW;
    o->bufIx = 2;
    o->buf[o->bufIx++] = MSG_CONNECT;
-   o->buf[o->bufIx++] = SMQ_VERSION;
+   o->buf[o->bufIx++] = SMQ_C_VERSION;
+   o->buf[o->bufIx++] = 0;
+   o->buf[o->bufIx++] = 0;
    o->buf[o->bufIx++] = (U8)uidLen;
    SMQ_putb(o,uid,uidLen);
    o->buf[o->bufIx++] = credLen;

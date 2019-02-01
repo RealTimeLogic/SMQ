@@ -9,7 +9,7 @@
  ****************************************************************************
  *            HEADER
  *
- *   $Id: SMQ.h 4339 2018-12-06 21:46:30Z wini $
+ *   $Id: SMQ.h 4352 2019-01-31 23:04:22Z wini $
  *
  *   COPYRIGHT:  Real Time Logic LLC, 2014 - 2018
  *
@@ -609,7 +609,7 @@ inline int SMQ::getMsgSize() {
 #define SharkMQ_constructor(o, buf, bufLen) SMQ_constructor(o, buf, bufLen)
 #define SharkMQ_setCtx(o, ctx) SMQ_setCtx(o, ctx)
 #define SharkMQ_init(o, scon, url, rnd) SMQ_init(o, url, rnd)
-#define SharkMQ_connect(o, uid, uidLen, credentials, credLen, info, infoLen) \
+#define SharkMQ_connect(o, uid, uidLen, credentials, credLen, info, infoLen, NotApplicable) \
    SMQ_connect(o, uid, uidLen, credentials, credLen, info, infoLen)
 #define SharkMQ_disconnect(o) SMQ_disconnect(o)
 #define SharkMQ_destructor(o) SMQ_destructor(o)

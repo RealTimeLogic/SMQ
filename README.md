@@ -6,6 +6,17 @@ SMQ, based on the publish - subscribe pattern, provides features similar to othe
 
 **[See the SMQ home page for details](https://realtimelogic.com/products/simplemq/)**
 
+
+# TL;DR; IoT Quickstart
+
+Setup your own IoT solution as follows:
+
+1. Download and compile the example code "as is". The example, when run, connects to the online test broker at:[https://simplemq.com/m2m-led/](https://simplemq.com/m2m-led/).
+2. Familiarize yourself with how the example works.
+3. Follow the Setting up a [Low Cost SMQ IoT Broker](https://makoserver.net/blog/2016/04/Setting-up-a-Low-Cost-SMQ-IoT-Broker) for how to setup your own IoT solution.
+4. Modify the example code (examples/m2m-led.c) and change the domain URL (SMQ_DOMAIN). The URL should be set to your own IoT server.
+
+
 # License
 
 The source code is released under the **Eclipse Public License - V 2.0**: [https://www.eclipse.org/legal/epl-v20.html](https://www.eclipse.org/legal/epl-v20.html)
@@ -36,3 +47,7 @@ The VcMake directory contains Visual Studio build files. The included Makefile c
 The example code m2m-led.c requires porting to your embedded board's LED(s). See the tutorial [Interfacing LED Demo Programs to Hardware](https://realtimelogic.com/ba/doc/en/C/shark/md_md_Examples.html#LedDemo) for details.
 
 See the src/arch directory for cross compiling details.
+
+### Build instructions for ESP8266
+
+Download the [ESP8266 IDE](https://realtimelogic.com/downloads/sharkssl/ESP8266/). The IDE includes the SMQ C client and a pre-configured esp-open-rtos bundled with an easy to use web-based C source code IDE.

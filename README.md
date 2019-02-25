@@ -11,7 +11,7 @@ SMQ, based on the publish - subscribe pattern, provides features similar to othe
 
 Setup your own IoT solution as follows:
 
-1. Download and compile the example code "as is". The example, when run, connects to the online test broker at:[https://simplemq.com/m2m-led/](https://simplemq.com/m2m-led/).
+1. Download and compile the example code "as is". The example, when run, connects to the [online test broker](https://simplemq.com/m2m-led/).
 2. Familiarize yourself with how the example works.
 3. Follow the Setting up a [Low Cost SMQ IoT Broker](https://makoserver.net/blog/2016/04/Setting-up-a-Low-Cost-SMQ-IoT-Broker) for how to setup your own IoT solution.
 4. Modify the example code (examples/m2m-led.c) and change the domain URL (SMQ_DOMAIN). The URL should be set to your own IoT server.

@@ -40,7 +40,8 @@ The build includes the SMQ library and a LED demonstration program. The LED demo
 
 ## Build instructions for Windows, Linux, and Mac
 
-The VcMake directory contains Visual Studio build files. The included Makefile compiles the library and the example program on any Linux/Mac computer.
+The VcMake directory contains Visual Studio build files. The included Makefile compiles the library and the example program on any Linux/Mac computer. If you are using Windows and if you do not have Visual Studio installed, you may download the batch file [DownloadAndCompileSMQ.bat](https://realtimelogic.com/downloads/SMQ/DownloadAndCompileSMQ.bat). This batch file downloads the SMQ C code from GitHub, downloads the Tiny C Compiler (TCC), compiles the SMQ code using TCC, and starts the SMQ LED example.
+
 
 ## Build instructions for embedded systems
 

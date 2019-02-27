@@ -565,7 +565,7 @@ m2mled(SharkMQ* smq, SharkSslCon* scon,
    if(SharkMQ_connect(smq,
                       smqUniqueId, smqUniqueIdLen,
                       0, 0, /* credentials */
-                      getDevName(), strlen(getDevName())))
+                      getDevName(), strlen(getDevName()),0))
    {
       xprintf(("Connect failed, status: %d\n", smq->status));
       return smq->status == SMQE_BUF_OVERFLOW || smq->status > 0;

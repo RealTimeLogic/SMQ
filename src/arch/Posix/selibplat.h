@@ -12,7 +12,7 @@
  *
  *   $Id: selibplat.h 3965 2017-02-02 19:53:21Z wini $
  *
- *   COPYRIGHT:  Real Time Logic LLC, 2014
+ *   COPYRIGHT:  Real Time Logic LLC, 2014 - 2019
  *
  *   This software is copyrighted by and is the sole property of Real
  *   Time Logic LLC.  All rights, title, ownership, or other interests in
@@ -52,8 +52,12 @@
 #include <errno.h>
 #include <stdarg.h>
 
-#ifdef SELIB_C
+#ifdef __CYGWIN__
+#define __linux__ 1
+#endif
 
+#ifdef SELIB_C
+#ifndef __CYGWIN__
 #define X_se_connect
 int se_connect(int* sock, const char* address, U16 port)
 {
@@ -116,5 +120,5 @@ int se_connect(int* sock, const char* address, U16 port)
    freeaddrinfo(result);
    return retVal;
 }
-
+#endif
 #endif

@@ -9,7 +9,7 @@
  ****************************************************************************
  *   PROGRAM MODULE
  *
- *   $Id: SMQClient.c 4352 2019-01-31 23:04:22Z wini $
+ *   $Id: SMQClient.c 4379 2019-05-09 20:15:11Z wini $
  *
  *   COPYRIGHT:  Real Time Logic LLC, 2014 - 2019
  *
@@ -30,6 +30,8 @@
  *
  *               https://realtimelogic.com
  ****************************************************************************  
+ * SMQ C library:
+ *  https://realtimelogic.com/ba/doc/en/C/reference/html/group__SMQClient.html
  */
 
 
@@ -82,17 +84,29 @@ netConvU32(U8* out, const U8* in)
 #error ENDIAN_NEEDED_Define_one_of_B_BIG_ENDIAN_or_B_LITTLE_ENDIAN
 #endif
 
-#define SMQ_resetb(o) (o)->bufIx=0
+#define SMQ_resetRB(o) (o)->rBufIx=0
+#ifdef SMQ_ENABLE_SENDBUF
+#define SMQ_resetSB(o) (o)->sBufIx=0
+#define SMQSBufIx(o) o->sBufIx
+#define SMQSBuf(o) o->sBuf
+#else
+#define SMQ_resetSB SMQ_resetRB
+#define SMQSBufIx(o) o->rBufIx
+#define SMQSBuf(o) o->buf
+#endif
 
+#ifdef SMQ_ENABLE_SENDBUF
+#define SMQ_recv(o,buf,len) se_recv(&o->sock, buf, len, o->rBufIx ? INFINITE_TMO : o->timeout)
+#else
 static int
 SMQ_recv(SMQ* o, U8* buf, int len)
 {
    o->inRecv=TRUE;
-   len = se_recv(&o->sock, buf, len, o->bufIx ? INFINITE_TMO : o->timeout);
+   len = se_recv(&o->sock, buf, len, o->rBufIx ? INFINITE_TMO : o->timeout);
    o->inRecv=FALSE;
    return len;
 }
-
+#endif
 
 /* Reads and stores the 3 frame header bytes (len:2 & msg:1) in the buffer.
    Returns zero on success and a value (error code) less than zero on error
@@ -101,12 +115,12 @@ static int
 SMQ_readFrameHeader(SMQ* o)
 {
    int x;
-   SMQ_resetb(o);
+   SMQ_resetRB(o);
    do
    {
-      x=SMQ_recv(o, o->buf, 3 - o->bufIx);
-      o->bufIx += (U16)x; /* assume it's OK */
-   } while(x > 0 && o->bufIx < 3);
+      x=SMQ_recv(o, o->buf, 3 - o->rBufIx);
+      o->rBufIx += (U16)x; /* assume it's OK */
+   } while(x > 0 && o->rBufIx < 3);
    if(x > 0)
    {
       netConvU16((U8*)&o->frameLen, o->buf);
@@ -133,10 +147,10 @@ SMQ_readFrame(SMQ* o, int hasFH)
       return o->status = SMQE_BUF_OVERFLOW;
    do
    {
-      x=SMQ_recv(o, o->buf+o->bufIx, o->frameLen - o->bufIx);
-      o->bufIx += (U16)x; /* assume it's OK */
-   } while(x > 0 && o->bufIx < o->frameLen);
-   SMQ_resetb(o);
+      x=SMQ_recv(o, o->buf+o->rBufIx, o->frameLen - o->rBufIx);
+      o->rBufIx += (U16)x; /* assume it's OK */
+   } while(x > 0 && o->rBufIx < o->frameLen);
+   SMQ_resetRB(o);
    if(x > 0) return 0;
    o->status = x == 0 ? SMQE_TIMEOUT : x;
    return o->status;
@@ -148,10 +162,10 @@ SMQ_readData(SMQ* o, U16 size)
 {
    int x;
    do {
-      x=SMQ_recv(o, o->buf+o->bufIx, size-o->bufIx);
-      o->bufIx += (U16)x; /* assume it's OK */
-   } while(x > 0 && o->bufIx < size);
-   if(x > 0) return o->bufIx;
+      x=SMQ_recv(o, o->buf+o->rBufIx, size-o->rBufIx);
+      o->rBufIx += (U16)x; /* assume it's OK */
+   } while(x > 0 && o->rBufIx < size);
+   if(x > 0) return o->rBufIx;
    o->status = x == 0 ? SMQE_TIMEOUT : x;
    return o->status;
 }
@@ -161,10 +175,10 @@ SMQ_readData(SMQ* o, U16 size)
 static int
 SMQ_flushb(SMQ* o)
 {
-   if(o->bufIx)
+   if(SMQSBufIx(o))
    {
-      int x = se_send(&o->sock, o->buf, o->bufIx);
-      SMQ_resetb(o);
+      int x = se_send(&o->sock, SMQSBuf(o), SMQSBufIx(o));
+      SMQ_resetSB(o);
       if(x < 0)
       {
          o->status = x;
@@ -181,10 +195,10 @@ SMQ_putb(SMQ* o, const void* data, int len)
 {
    if(len < 0)
       len = strlen((char*)data);
-   if(o->bufLen <= (o->bufIx + len))
+   if(o->bufLen <= (SMQSBufIx(o) + len))
       return -1;
-   memcpy(o->buf + o->bufIx, data, len);
-   o->bufIx += (U16)len;
+   memcpy(SMQSBuf(o) + SMQSBufIx(o), data, len);
+   SMQSBufIx(o) += (U16)len;
    return 0;
 }
 
@@ -195,7 +209,7 @@ SMQ_writeb(SMQ* o, const void* data, int len)
 {
    if(len < 0)
       len = strlen((char*)data);
-   if(o->bufLen <= (o->bufIx + len))
+   if(o->bufLen <= (SMQSBufIx(o) + len))
    {
       if(SMQ_flushb(o)) return o->status;
       if((len+20) >= o->bufLen)
@@ -209,8 +223,8 @@ SMQ_writeb(SMQ* o, const void* data, int len)
          return 0;
       }
    }
-   memcpy(o->buf + o->bufIx, data, len);
-   o->bufIx += (U16)len;
+   memcpy(SMQSBuf(o) + SMQSBufIx(o), data, len);
+   SMQSBufIx(o) += (U16)len;
    return 0;
 }
 
@@ -220,6 +234,10 @@ SMQ_constructor(SMQ* o, U8* buf, U16 bufLen)
 {
    memset(o, 0, sizeof(SMQ));
    o->buf = buf;
+#ifdef SMQ_ENABLE_SENDBUF
+   bufLen = bufLen / 2;
+   o->sBuf = buf+bufLen;
+#endif
    o->bufLen = bufLen;
    o->timeout = 60 * 1000;
    o->pingTmo = 20 * 60 * 1000;
@@ -268,19 +286,19 @@ L_defPorts:
    }
    /* Write hostname */
 
-   SMQ_resetb(o);
-   o->bufIx = (U16)(eohn-url); /* save hostname len */
-   if((o->bufIx+1) >= o->bufLen)
+   SMQ_resetSB(o);
+   SMQSBufIx(o) = (U16)(eohn-url); /* save hostname len */
+   if((SMQSBufIx(o)+1) >= o->bufLen)
       return o->status = SMQE_BUF_OVERFLOW;
-   memcpy(o->buf, url, o->bufIx); 
-   o->buf[o->bufIx]=0;
+   memcpy(SMQSBuf(o), url, SMQSBufIx(o)); 
+   SMQSBuf(o)[SMQSBufIx(o)]=0;
 
    /* connect to 'hostname' */
-   if( (x = se_connect(&o->sock, (char*)o->buf, portNo)) != 0 )
+   if( (x = se_connect(&o->sock, (char*)SMQSBuf(o), portNo)) != 0 )
       return o->status = x;
 
    /* Send HTTP header. Host is included for multihomed servers */
-   SMQ_resetb(o);
+   SMQ_resetSB(o);
    if(SMQ_writeb(o, SMQSTR("GET ")) ||
       (*path == 0 ? SMQ_writeb(o, "/", -1) : SMQ_writeb(o, path, -1)) ||
       SMQ_writeb(o,SMQSTR(" HTTP/1.0\r\nHost: ")) ||
@@ -310,19 +328,19 @@ SMQ_connect(SMQ* o, const char* uid, int uidLen, const char* credentials,
             U8 credLen, const char* info, int infoLen)
 {
    if(o->bufLen < 5+uidLen+credLen+infoLen) return SMQE_BUF_OVERFLOW;
-   o->bufIx = 2;
-   o->buf[o->bufIx++] = MSG_CONNECT;
-   o->buf[o->bufIx++] = SMQ_C_VERSION;
-   o->buf[o->bufIx++] = 0;
-   o->buf[o->bufIx++] = 0;
-   o->buf[o->bufIx++] = (U8)uidLen;
+   SMQSBufIx(o) = 2;
+   SMQSBuf(o)[SMQSBufIx(o)++] = MSG_CONNECT;
+   SMQSBuf(o)[SMQSBufIx(o)++] = SMQ_C_VERSION;
+   SMQSBuf(o)[SMQSBufIx(o)++] = 0;
+   SMQSBuf(o)[SMQSBufIx(o)++] = 0;
+   SMQSBuf(o)[SMQSBufIx(o)++] = (U8)uidLen;
    SMQ_putb(o,uid,uidLen);
-   o->buf[o->bufIx++] = credLen;
+   SMQSBuf(o)[SMQSBufIx(o)++] = credLen;
    if(credLen)
       SMQ_putb(o,credentials,credLen);
    if(info)
       SMQ_putb(o,info,infoLen);
-   netConvU16(o->buf, (U8*)&o->bufIx); /* Frame Len */
+   netConvU16(SMQSBuf(o), (U8*)&SMQSBufIx(o)); /* Frame Len */
    if(SMQ_flushb(o)) return o->status;
 
    /* Get the response message Connack */
@@ -347,9 +365,9 @@ SMQ_disconnect(SMQ* o)
 {
    if(se_sockValid(&o->sock))
    {
-      o->bufIx = 3;
-      netConvU16(o->buf, (U8*)&o->bufIx); /* Frame Len */
-      o->buf[2] = MSG_DISCONNECT;
+      SMQSBufIx(o) = 3;
+      netConvU16(SMQSBuf(o), (U8*)&SMQSBufIx(o)); /* Frame Len */
+      SMQSBuf(o)[2] = MSG_DISCONNECT;
       SMQ_flushb(o);
       se_close(&o->sock);
    }
@@ -369,10 +387,10 @@ SMQ_subOrCreate(SMQ* o,const char* topic,int msg)
    int len = strlen(topic);
    if( ! len ) return SMQE_PROTOCOL_ERROR;
    if((3+len) > o->bufLen) return SMQE_BUF_OVERFLOW;
-   o->bufIx = 2;
-   o->buf[o->bufIx++] = (U8)msg;
+   SMQSBufIx(o) = 2;
+   SMQSBuf(o)[SMQSBufIx(o)++] = (U8)msg;
    SMQ_putb(o,topic,len);
-   netConvU16(o->buf, (U8*)&o->bufIx); /* Frame Len */
+   netConvU16(SMQSBuf(o), (U8*)&SMQSBufIx(o)); /* Frame Len */
    return SMQ_flushb(o);
 }
 
@@ -401,10 +419,10 @@ SMQ_createsub(SMQ* o, const char* topic)
 static int
 SMQ_sendMsgWithTid(SMQ* o, int msgType, U32 tid)
 {
-   o->bufIx=7;
-   netConvU16(o->buf, (U8*)&o->bufIx); /* Frame Len */
-   o->buf[2] = (U8)msgType;
-   netConvU32(o->buf+3, (U8*)&tid);
+   SMQSBufIx(o)=7;
+   netConvU16(SMQSBuf(o), (U8*)&SMQSBufIx(o)); /* Frame Len */
+   SMQSBuf(o)[2] = (U8)msgType;
+   netConvU32(SMQSBuf(o)+3, (U8*)&tid);
    return SMQ_flushb(o) ? o->status : 0;
 }
 
@@ -422,12 +440,12 @@ SMQ_publish(SMQ* o, const void* data, int len, U32 tid, U32 subtid)
    U16 tlen=(U16)len+15;
    if(tlen <= o->bufLen && ! o->inRecv)
    {
-      netConvU16(o->buf, (U8*)&tlen); /* Frame Len */
-      o->buf[2] = MSG_PUBLISH;
-      netConvU32(o->buf+3, (U8*)&tid);
-      netConvU32(o->buf+7,(U8*)&o->clientTid);
-      netConvU32(o->buf+11,(U8*)&subtid);
-      o->bufIx = 15;
+      netConvU16(SMQSBuf(o), (U8*)&tlen); /* Frame Len */
+      SMQSBuf(o)[2] = MSG_PUBLISH;
+      netConvU32(SMQSBuf(o)+3, (U8*)&tid);
+      netConvU32(SMQSBuf(o)+7,(U8*)&o->clientTid);
+      netConvU32(SMQSBuf(o)+11,(U8*)&subtid);
+      SMQSBufIx(o) = 15;
       if(SMQ_writeb(o, data, len) || SMQ_flushb(o)) return o->status;
    }
    else
@@ -464,15 +482,15 @@ SMQ_write(SMQ* o,  const void* data, int len)
    while(len > 0)
    {
       int chunk,left;
-      if(!o->bufIx)
-         o->bufIx = 15;
-      left = o->bufLen - o->bufIx;
+      if(!SMQSBufIx(o))
+         SMQSBufIx(o) = 15;
+      left = o->bufLen - SMQSBufIx(o);
       chunk = len > left ? left : len;
-      memcpy(o->buf+o->bufIx, ptr, chunk);
+      memcpy(SMQSBuf(o)+SMQSBufIx(o), ptr, chunk);
       ptr += chunk;
       len -= chunk;
-      o->bufIx += (U16)chunk;
-      if(o->bufIx >= o->bufLen && SMQ_pubflush(o, 0, 0))
+      SMQSBufIx(o) += (U16)chunk;
+      if(SMQSBufIx(o) >= o->bufLen && SMQ_pubflush(o, 0, 0))
          return o->status;
    }
    return 0;
@@ -482,15 +500,15 @@ SMQ_write(SMQ* o,  const void* data, int len)
 int
 SMQ_pubflush(SMQ* o, U32 tid, U32 subtid)
 {
-   if(!o->bufIx)
-      o->bufIx = 15;
-   netConvU16(o->buf, (U8*)&o->bufIx); /* Frame Len */
-   o->buf[2] = MSG_PUBFRAG;
-   netConvU32(o->buf+3, (U8*)&tid);
-   netConvU32(o->buf+7,(U8*)&o->clientTid);
-   netConvU32(o->buf+11,(U8*)&subtid);
-   o->status=se_send(&o->sock, o->buf, o->bufIx);
-   SMQ_resetb(o);
+   if(!SMQSBufIx(o))
+      SMQSBufIx(o) = 15;
+   netConvU16(SMQSBuf(o), (U8*)&SMQSBufIx(o)); /* Frame Len */
+   SMQSBuf(o)[2] = MSG_PUBFRAG;
+   netConvU32(SMQSBuf(o)+3, (U8*)&tid);
+   netConvU32(SMQSBuf(o)+7,(U8*)&o->clientTid);
+   netConvU32(SMQSBuf(o)+11,(U8*)&subtid);
+   o->status=se_send(&o->sock, SMQSBuf(o), SMQSBufIx(o));
+   SMQ_resetSB(o);
    if(o->status < 0) return o->status;
    o->status=0;
    return 0;
@@ -524,7 +542,7 @@ SMQ_getMessage(SMQ* o, U8** msg)
          U16 size = o->frameLen - o->bytesRead;
          *msg = o->buf;
          x=SMQ_readData(o, size <= o->bufLen ? size : o->bufLen);
-         SMQ_resetb(o);
+         SMQ_resetRB(o);
          if(x > 0) o->bytesRead += (U16)x;
          else o->bytesRead = 0;
          return x;
@@ -544,12 +562,10 @@ SMQ_getMessage(SMQ* o, U8** msg)
             if(o->pingTmoCounter >= o->pingTmo)
             {
                o->pingTmoCounter = -10000; /* PONG tmo hard coded to 10 sec */
-               o->bufIx=3;
-               netConvU16(o->buf, (U8*)&o->bufIx); /* Frame Len */
-               o->buf[2] = MSG_PING;
-               o->status=se_send(&o->sock, o->buf, o->bufIx);
-               SMQ_resetb(o);
-               if(o->status < 0) return o->status;
+               SMQSBufIx(o)=3;
+               netConvU16(SMQSBuf(o), (U8*)&SMQSBufIx(o)); /* Frame Len */
+               SMQSBuf(o)[2] = MSG_PING;
+               if(SMQ_flushb(o)) return o->status;
             }
          }
          else
@@ -605,7 +621,7 @@ SMQ_getMessage(SMQ* o, U8** msg)
          if(o->frameLen < 15) return SMQE_PROTOCOL_ERROR;
          o->bytesRead = o->frameLen <= o->bufLen ? o->frameLen : o->bufLen;
          x=SMQ_readData(o, o->bytesRead);
-         SMQ_resetb(o);
+         SMQ_resetRB(o);
          if(x > 0)
          {
             netConvU32((U8*)&o->tid, o->buf+3);
@@ -622,7 +638,9 @@ SMQ_getMessage(SMQ* o, U8** msg)
          if(o->frameLen != 3) return SMQE_PROTOCOL_ERROR;
          if(o->buf[2] == MSG_PING)
          {
-            o->buf[2] = MSG_PONG;
+            SMQSBufIx(o)=3;
+            netConvU16(SMQSBuf(o), (U8*)&SMQSBufIx(o)); /* Frame Len */
+            SMQSBuf(o)[2] = MSG_PONG;
             if(SMQ_flushb(o)) return o->status;
          }
          goto L_readMore;

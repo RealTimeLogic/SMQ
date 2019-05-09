@@ -9,9 +9,9 @@
  ****************************************************************************
  *            HEADER
  *
- *   $Id: SMQ.h 4352 2019-01-31 23:04:22Z wini $
+ *   $Id: SMQ.h 4379 2019-05-09 20:15:11Z wini $
  *
- *   COPYRIGHT:  Real Time Logic LLC, 2014 - 2018
+ *   COPYRIGHT:  Real Time Logic LLC, 2014 - 2019
  *
  *   This software is copyrighted by and is the sole property of Real
  *   Time Logic LLC.  All rights, title, ownership, or other interests in
@@ -30,7 +30,8 @@
  *
  *               https://realtimelogic.com
  ****************************************************************************
- *
+ * SMQ C library:
+ *  https://realtimelogic.com/ba/doc/en/C/reference/html/group__SMQClient.html
  */
 
 #ifndef __SMQClient_h
@@ -141,6 +142,9 @@ typedef struct SMQ
    SOCKET sock;
 
    U8* buf; /**< The buffer set via the constructor. */
+#ifdef SMQ_ENABLE_SENDBUF
+   U8* sBuf;
+#endif
 
    /** Timeout in milliseconds to wait in functions waiting for server
        data */
@@ -152,7 +156,10 @@ typedef struct SMQ
    U32 subtid; /**< Sub-tid: set when receiving MSG_PUBLISH from broker */
    int status; /**< Last known error code */
    U16 bufLen;
-   U16 bufIx;
+   U16 rBufIx;
+#ifdef SMQ_ENABLE_SENDBUF
+   U16 sBufIx;
+#endif
    U16 frameLen; /**< The SimpleMQ frame size for the incomming data */
    /** Read frame data using SMQ_getMessage until: frameLen - bytesRead = 0 */
    U16 bytesRead;

@@ -9,7 +9,7 @@
  ****************************************************************************
  *   PROGRAM MODULE
  *
- *   $Id: SMQClient.c 4379 2019-05-09 20:15:11Z wini $
+ *   $Id: SMQClient.c 4380 2019-05-10 13:47:11Z wini $
  *
  *   COPYRIGHT:  Real Time Logic LLC, 2014 - 2019
  *
@@ -559,13 +559,16 @@ SMQ_getMessage(SMQ* o, U8** msg)
          if(o->pingTmoCounter >= 0)
          {
             o->pingTmoCounter += o->timeout;
-            if(o->pingTmoCounter >= o->pingTmo)
+            if(o->pingTmoCounter >= o->pingTmo && o->rBufIx == 0)
             {
+               /* Use rec buffer for sending */
                o->pingTmoCounter = -10000; /* PONG tmo hard coded to 10 sec */
-               SMQSBufIx(o)=3;
-               netConvU16(SMQSBuf(o), (U8*)&SMQSBufIx(o)); /* Frame Len */
-               SMQSBuf(o)[2] = MSG_PING;
-               if(SMQ_flushb(o)) return o->status;
+               o->rBufIx=3;
+               netConvU16(o->buf, (U8*)&o->rBufIx); /* Frame Len */
+               o->buf[2] = MSG_PING;
+               o->status=se_send(&o->sock, o->buf, o->rBufIx);
+               SMQ_resetRB(o);
+               if(o->status < 0) return o->status;
             }
          }
          else
@@ -637,11 +640,11 @@ SMQ_getMessage(SMQ* o, U8** msg)
       case MSG_PONG:
          if(o->frameLen != 3) return SMQE_PROTOCOL_ERROR;
          if(o->buf[2] == MSG_PING)
-         {
-            SMQSBufIx(o)=3;
-            netConvU16(SMQSBuf(o), (U8*)&SMQSBufIx(o)); /* Frame Len */
-            SMQSBuf(o)[2] = MSG_PONG;
-            if(SMQ_flushb(o)) return o->status;
+         {  /* Use rec buffer for sending */
+            o->buf[2] = MSG_PONG;
+            o->status=se_send(&o->sock, o->buf, 3);
+            SMQ_resetRB(o);
+            if(o->status < 0) return o->status;
          }
          goto L_readMore;
 

@@ -367,7 +367,7 @@ int
 setLedFromDevice(int* ledId, int* on)
 {
    int ledLen;
-   const LedInfo* ledInfo = getLedInfo(&ledLen);
+   const LedInfo* linfo = getLedInfo(&ledLen);
    if(xkbhit())
    {
       int base,i;
@@ -400,7 +400,7 @@ setLedFromDevice(int* ledId, int* on)
       base=0;
       for(i = 0 ; i < ledLen ; i++)
       {
-         if(ledInfo[i].id == c)
+         if(linfo[i].id == c)
          {
             base=1;
             break;
@@ -413,7 +413,7 @@ setLedFromDevice(int* ledId, int* on)
       }
       printf("Invalid LedId %d. Valid keys (upper/lower): ",c);
       for(i = 0 ; i < ledLen ; i++)
-         printf("%c ",'A'+ledInfo[i].id);
+         printf("%c ",'A'+linfo[i].id);
       printf("\n");
    }
 

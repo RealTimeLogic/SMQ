@@ -10,9 +10,9 @@
  ****************************************************************************
  *   PROGRAM MODULE
  *
- *   $Id: m2m-led-SharkMQ.c 4340 2018-12-06 22:56:56Z wini $
+ *   $Id: m2m-led-SharkMQ.c 4463 2019-11-08 18:58:46Z wini $
  *
- *   COPYRIGHT:  Real Time Logic LLC, 2014 - 2018
+ *   COPYRIGHT:  Real Time Logic LLC, 2014 - 2019
  *
  *   This software is copyrighted by and is the sole property of Real
  *   Time Logic LLC.  All rights, title, ownership, or other interests in
@@ -146,6 +146,7 @@ https://goo.gl/rjdQjg
 
 */
 #ifdef SMQ_SEC
+#include <SharkSslCrypto.h>
 #include "certificates/CA_RTL_EC_256.h"
 #endif
 
@@ -403,7 +404,7 @@ sendDevInfo(SharkMQ* smq, const char* ipaddr, U32 tid, U32 subtid)
    char buf[11];
    char *ptr;
    int val;
-   const LedInfo* ledInfo = getLedInfo(&ledLen);
+   const LedInfo* linfo = getLedInfo(&ledLen);
 
    SharkMQ_wrtstr(smq, "{\"ipaddr\":\"");
    SharkMQ_wrtstr(smq, ipaddr);
@@ -422,7 +423,7 @@ sendDevInfo(SharkMQ* smq, const char* ipaddr, U32 tid, U32 subtid)
    for(i = 0 ; i < ledLen ; i++)
    {
       ptr = &buf[(sizeof buf) - 1];
-      val = ledInfo[i].id;
+      val = linfo[i].id;
       *ptr = 0; 
       if(i != 0)
          SharkMQ_wrtstr(smq,",");
@@ -434,11 +435,11 @@ sendDevInfo(SharkMQ* smq, const char* ipaddr, U32 tid, U32 subtid)
       } while (val && ptr > buf); 
       SharkMQ_wrtstr(smq, ptr); /* number converted to string */
       SharkMQ_wrtstr(smq, ",\"name\":\"");
-      SharkMQ_wrtstr(smq, ledInfo[i].name);
+      SharkMQ_wrtstr(smq, linfo[i].name);
       SharkMQ_wrtstr(smq, "\",\"color\":\"");
-      SharkMQ_wrtstr(smq, ledType2String(ledInfo[i].color));
+      SharkMQ_wrtstr(smq, ledType2String(linfo[i].color));
       SharkMQ_wrtstr(smq, "\",\"on\":");
-      SharkMQ_wrtstr(smq, getLedState(ledInfo[i].id)?"true":"false");
+      SharkMQ_wrtstr(smq, getLedState(linfo[i].id)?"true":"false");
       SharkMQ_wrtstr(smq, "}");
    }
 #ifdef ENABLE_TEMP
@@ -489,6 +490,16 @@ m2mled(SharkMQ* smq, SharkSslCon* scon,
 #endif
    char ipaddr[16];
 
+   /* The following is used for creating seeded hash based credentials.
+      The server example code can use this for authenticating the client.
+   */
+   U8 sha1Digest[20];
+   U32 nonce;
+   U8 nonceData[4];
+   char* password="qwerty"; /* The hard coded example password used by server */
+   SharkSslSha1Ctx ctx;
+
+
 /* We make it possible to override the URL at the command prompt when
  * in simulation mode.
  */
@@ -501,10 +512,14 @@ m2mled(SharkMQ* smq, SharkSslCon* scon,
    (void)scon;
 #endif
 
+   /* Prepare hashed password */
+   SharkSslSha1Ctx_constructor(&ctx);
+   SharkSslSha1Ctx_append(&ctx, (U8*)password, strlen(password));
+
    xprintf(("Connecting to %s\n", str));
    smq->timeout = 3000; /* Bail out if the connection takes this long */
    setProgramStatus(ProgramStatus_Connecting);
-   if(SharkMQ_init(smq, scon, str, 0) < 0)
+   if(SharkMQ_init(smq, scon, str, &nonce) < 0)
    {
       xprintf(("Cannot establish connection, status: %d\n", smq->status));
       switch(smq->status)
@@ -557,6 +572,16 @@ m2mled(SharkMQ* smq, SharkSslCon* scon,
    }
 #endif
 
+   /* Add seed (aka nonce) value provided by server and generate the seeded
+    * password hash.
+    */
+   nonceData[0] = (U8)nonce;
+   nonceData[1] = (U8)(nonce >> 8);
+   nonceData[2] = (U8)(nonce >> 16);
+   nonceData[3] = (U8)(nonce >> 24);
+   SharkSslSha1Ctx_append(&ctx, nonceData, 4);
+   SharkSslSha1Ctx_finish(&ctx, sha1Digest);
+
    /* Fetch the IP address sent by the broker. We use this for the
     * text shown in the left pane tab in the browser's user interface.
     */
@@ -564,8 +589,8 @@ m2mled(SharkMQ* smq, SharkSslCon* scon,
    ipaddr[15]=0;
    if(SharkMQ_connect(smq,
                       smqUniqueId, smqUniqueIdLen,
-                      0, 0, /* credentials */
-                      getDevName(), strlen(getDevName()),0))
+                      (char*)sha1Digest, sizeof(sha1Digest), /* credentials */
+                      getDevName(), strlen(getDevName()),1420))
    {
       xprintf(("Connect failed, status: %d\n", smq->status));
       return smq->status == SMQE_BUF_OVERFLOW || smq->status > 0;
@@ -765,7 +790,7 @@ mainTask(SeCtx* ctx)
                         SharkSsl_Client, /* Two options: client or server */
                         0,      /* Not using SSL cache */
 #if DUPTR==U64 /* if 64 bit CPU: larger buffer required */
-                        3000,   /* initial inBuf size: Can grow */
+                        2000,   /* initial inBuf size: Can grow */
                         3000      /* outBuf size: Fixed */
 #else
                         2000,   /* initial inBuf size: Can grow */

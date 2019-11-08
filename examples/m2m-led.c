@@ -469,6 +469,29 @@ sendDevInfo(SharkMQ* smq, const char* ipaddr, U32 tid, U32 subtid)
    return SharkMQ_pubflush(smq,tid,subtid);
 }
 
+/* The device secret */
+const char* password="qwerty";
+
+/*
+  Calculate SHA1(password + salt) and return value in out param sha1Digest
+*/
+void calculateSaltedPassword(U32 nonce, U8 sha1Digest[20])
+{
+   SharkSslSha1Ctx ctx;
+   U8 nonceData[4];
+   SharkSslSha1Ctx_constructor(&ctx);
+   /* Add salt (aka nonce) value provided by server and generate the salted
+    * password hash.
+    */
+   nonceData[0] = (U8)nonce;
+   nonceData[1] = (U8)(nonce >> 8);
+   nonceData[2] = (U8)(nonce >> 16);
+   nonceData[3] = (U8)(nonce >> 24);
+   SharkSslSha1Ctx_append(&ctx, (U8*)password, strlen(password));
+   SharkSslSha1Ctx_append(&ctx, nonceData, 4);
+   SharkSslSha1Ctx_finish(&ctx, sha1Digest);
+}
+
 
 /*
   The M2M-LED main function does not return unless the code cannot
@@ -490,15 +513,11 @@ m2mled(SharkMQ* smq, SharkSslCon* scon,
 #endif
    char ipaddr[16];
 
-   /* The following is used for creating seeded hash based credentials.
+   /* The following is used for creating salted hash based credentials.
       The server example code can use this for authenticating the client.
    */
+   U32 nonce; /* Sent by server */
    U8 sha1Digest[20];
-   U32 nonce;
-   U8 nonceData[4];
-   char* password="qwerty"; /* The hard coded example password used by server */
-   SharkSslSha1Ctx ctx;
-
 
 /* We make it possible to override the URL at the command prompt when
  * in simulation mode.
@@ -511,10 +530,6 @@ m2mled(SharkMQ* smq, SharkSslCon* scon,
 #ifndef SMQ_SEC
    (void)scon;
 #endif
-
-   /* Prepare hashed password */
-   SharkSslSha1Ctx_constructor(&ctx);
-   SharkSslSha1Ctx_append(&ctx, (U8*)password, strlen(password));
 
    xprintf(("Connecting to %s\n", str));
    smq->timeout = 3000; /* Bail out if the connection takes this long */
@@ -572,15 +587,7 @@ m2mled(SharkMQ* smq, SharkSslCon* scon,
    }
 #endif
 
-   /* Add seed (aka nonce) value provided by server and generate the seeded
-    * password hash.
-    */
-   nonceData[0] = (U8)nonce;
-   nonceData[1] = (U8)(nonce >> 8);
-   nonceData[2] = (U8)(nonce >> 16);
-   nonceData[3] = (U8)(nonce >> 24);
-   SharkSslSha1Ctx_append(&ctx, nonceData, 4);
-   SharkSslSha1Ctx_finish(&ctx, sha1Digest);
+   calculateSaltedPassword(nonce, sha1Digest); /* Store pwd in sha1Digest */
 
    /* Fetch the IP address sent by the broker. We use this for the
     * text shown in the left pane tab in the browser's user interface.

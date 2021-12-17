@@ -10,7 +10,7 @@
  ****************************************************************************
  *   PROGRAM MODULE
  *
- *   $Id: selibplat.h 4769 2021-06-11 17:29:36Z gianluca $
+ *   $Id: selibplat.h 4366 2019-03-22 00:32:43Z wini $
  *
  *   COPYRIGHT:  Real Time Logic LLC, 2014 - 2019
  *
@@ -35,10 +35,8 @@
  *
  */
 
-
 #define SharkSSLPosix
 #define HOST_PLATFORM 1
-
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
@@ -52,12 +50,11 @@
 #include <errno.h>
 #include <stdarg.h>
 
-#ifdef __CYGWIN__
-#define __linux__ 1
+#ifdef __cplusplus
+extern "C" {
 #endif
 
 #ifdef SELIB_C
-#ifndef __CYGWIN__
 #define X_se_connect
 int se_connect(int* sock, const char* address, U16 port)
 {
@@ -121,4 +118,7 @@ int se_connect(int* sock, const char* address, U16 port)
    return retVal;
 }
 #endif
+
+#ifdef __cplusplus
+}
 #endif

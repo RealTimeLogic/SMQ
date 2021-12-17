@@ -10,9 +10,9 @@
  ****************************************************************************
  *   PROGRAM MODULE
  *
- *   $Id: seLwIP.c 3871 2016-03-27 01:23:13Z wini $
+ *   $Id: seLwIP.c 4963 2021-12-17 00:32:59Z wini $
  *
- *   COPYRIGHT:  Real Time Logic LLC, 2014 - 2016
+ *   COPYRIGHT:  Real Time Logic LLC, 2014 - 2021
  *
  *   This software is copyrighted by and is the sole property of Real
  *   Time Logic LLC.  All rights, title, ownership, or other interests in
@@ -132,7 +132,10 @@ int se_connect(SOCKET* sock, const char* name, U16 port)
 void se_close(SOCKET* sock)
 {
    if(sock->con)
+   {
+      netconn_close(sock->con);
       netconn_delete(sock->con);
+   }
    if(sock->nbuf)
       netbuf_delete(sock->nbuf);
    memset(sock, 0, sizeof(SOCKET));

@@ -9,7 +9,7 @@
  ****************************************************************************
  *   PROGRAM MODULE
  *
- *   $Id: SMQClient.c 4380 2019-05-10 13:47:11Z wini $
+ *   $Id: SMQClient.c 4914 2021-12-01 18:24:30Z wini $
  *
  *   COPYRIGHT:  Real Time Logic LLC, 2014 - 2019
  *

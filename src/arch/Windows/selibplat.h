@@ -10,7 +10,7 @@
  ****************************************************************************
  *   PROGRAM MODULE
  *
- *   $Id: selibplat.h 4331 2018-12-06 20:41:28Z wini $
+ *   $Id: selibplat.h 4769 2021-06-11 17:29:36Z gianluca $
  *
  *   COPYRIGHT:  Real Time Logic LLC, 2014 - 2017
  *

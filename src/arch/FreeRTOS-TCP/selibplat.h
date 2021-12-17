@@ -10,7 +10,7 @@
  ****************************************************************************
  *   PROGRAM MODULE
  *
- *   $Id: selibplat.h 4328 2018-11-23 15:44:42Z wini $
+ *   $Id: selibplat.h 4769 2021-06-11 17:29:36Z gianluca $
  *
  *   COPYRIGHT:  Real Time Logic LLC, 2018
  *
@@ -35,14 +35,8 @@
  *
  */
 
-#include "FreeRTOSIPConfig.h"
 #include "FreeRTOS_IP.h"
 #include "FreeRTOS_Sockets.h"
-
-#if (!defined(ipconfigUSE_DNS))
-   /* ipconfigUSE_DNS is needed for FreeRTOS_gethostbyname() */
-   #error "Please enable ipconfigUSE_DNS in FreeRTOSIPConfig.h"
-#endif
 
 #if !defined(B_LITTLE_ENDIAN) || defined(B_BIG_ENDIAN)
 #if ipconfigBYTE_ORDER == pdFREERTOS_BIG_ENDIAN
@@ -56,17 +50,6 @@
 
 #define SOCKET Socket_t
 
-/*
- * Compiling under ARM gcc seems to be missing INADDR_ANY and SOMAXCONN.
- * These values match those in the standard Linux header files but will
- * need to be adjusted depending on the device.
- */ 
-#ifndef INADDR_ANY
-#define INADDR_ANY 0
-#endif
-#ifndef SOMAXCONN
-#define SOMAXCONN 128
-#endif
 
 #ifdef SELIB_C
 
@@ -77,9 +60,27 @@ int se_sockValid(SOCKET* sock)
 
 
 void se_close(SOCKET* sock)
-{ 
-   FreeRTOS_closesocket(*sock);
-   *sock=FREERTOS_INVALID_SOCKET;
+{
+   TickType_t start_time;
+   U8 buffer[10];
+
+   if(*sock != FREERTOS_INVALID_SOCKET)
+   {
+      FreeRTOS_shutdown(*sock, FREERTOS_SHUT_RDWR);
+      start_time = xTaskGetTickCount();
+
+      do
+      {
+         int rc = FreeRTOS_recv(*sock, buffer, sizeof(buffer), 0);
+         if(rc < 0 && rc != -pdFREERTOS_ERRNO_EAGAIN)
+         {
+            break;
+         }
+      } while((xTaskGetTickCount() - start_time) < pdMS_TO_TICKS(1000));
+
+      FreeRTOS_closesocket(*sock);
+      *sock=FREERTOS_INVALID_SOCKET;
+   }
 }
 
 int se_bind(SOCKET* sock, uint16_t port)

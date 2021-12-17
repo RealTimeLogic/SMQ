@@ -253,11 +253,13 @@ xgetch()
    if(c == 27)
    {
       U16 x;
-      read(0, &x, sizeof(x));
-      switch(x)
+      if(read(0, &x, sizeof(x)) > 0)
       {
-         case 0x415B: return KEY_UP_ARROW;
-         case 0x425B: return KEY_DOWN_ARROW;
+         switch(x)
+         {
+            case 0x415B: return KEY_UP_ARROW;
+            case 0x425B: return KEY_DOWN_ARROW;
+         }
       }
       return 'A'; /* dummy value */
    }

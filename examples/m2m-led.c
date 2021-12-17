@@ -10,9 +10,9 @@
  ****************************************************************************
  *   PROGRAM MODULE
  *
- *   $Id: m2m-led-SharkMQ.c 4463 2019-11-08 18:58:46Z wini $
+ *   $Id: m2m-led-SharkMQ.c 4914 2021-12-01 18:24:30Z wini $
  *
- *   COPYRIGHT:  Real Time Logic LLC, 2014 - 2019
+ *   COPYRIGHT:  Real Time Logic LLC, 2014 - 2021
  *
  *   This software is copyrighted by and is the sole property of Real
  *   Time Logic LLC.  All rights, title, ownership, or other interests in
@@ -579,7 +579,11 @@ m2mled(SharkMQ* smq, SharkSslCon* scon,
          smq->status <= -1000; /* Proxy error codes */
    }
 #ifdef SMQ_SEC
-   else if(smq->status != SharkSslConTrust_CertCn)
+#if SHARKSSL_CHECK_DATE
+   else if(smq->status != SharkSslConTrust_CertCnDate)
+#else
+   else if (smq->status != SharkSslConTrust_CertCn)
+#endif
    {
       setProgramStatus(ProgramStatus_CertificateNotTrustedError);
       xprintf(("%cWARNING: certificate received from %s not trusted!\n",
@@ -832,7 +836,7 @@ mainTask(SeCtx* ctx)
       See the following link for more information:
       realtimelogic.com/ba/doc/en/C/shark/md_md_Certificate_Management.html
       */
-   SharkSsl_setCAList(&sharkSsl, sharkSslCAList);
+   SharkSsl_setCAList(&sharkSsl, sharkSSL_New_RTL_ECC_CA);
 
    SharkMQ_constructor(&smq, buf, sizeof(buf));
    SharkMQ_setCtx(&smq, ctx);  /* Required for non RTOS env. */

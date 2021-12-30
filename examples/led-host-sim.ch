@@ -12,7 +12,7 @@
  *
  *   $Id$
  *
- *   COPYRIGHT:  Real Time Logic LLC, 2019
+ *   COPYRIGHT:  Real Time Logic LLC, 2021
  *
  *   This software is copyrighted by and is the sole property of Real
  *   Time Logic LLC.  All rights, title, ownership, or other interests in
@@ -199,7 +199,6 @@ xgetch()
 #include <net/if.h>
 #include <termios.h>
 /* UNIX kbhit and getch simulation */
-static struct termios orgTs;
 
 #if __APPLE__
 #define HAVE_GETIFADDRS
@@ -211,35 +210,29 @@ static struct termios orgTs;
 #define HAVE_SIOCGIFHWADDR
 #endif
 
-
-static void
-resetTerminalMode()
-{
-   tcsetattr(0, TCSANOW, &orgTs);
-}
-
-static void
-setConioTerminalMode()
-{
-   struct termios asyncTs;
-   tcgetattr(0, &orgTs);
-   memcpy(&asyncTs, &orgTs, sizeof(asyncTs));
-   /* register cleanup handler, and set the new terminal mode */
-   atexit(resetTerminalMode);
-   cfmakeraw(&asyncTs);
-   asyncTs.c_oflag=orgTs.c_oflag;
-   tcsetattr(0, TCSANOW, &asyncTs);
-}
+/* For backward comp. */
+#define setConioTerminalMode()
 
 static int
 xkbhit()
 {
    struct timeval tv = { 0L, 0L };
    fd_set fds;
+   struct termios orgTs;
+   struct termios asyncTs;
+   int set;
+   tcgetattr(0, &orgTs);
+   memcpy(&asyncTs, &orgTs, sizeof(asyncTs));
+   cfmakeraw(&asyncTs);
+   asyncTs.c_oflag=orgTs.c_oflag;
+   tcsetattr(0, TCSANOW, &asyncTs);
    FD_ZERO(&fds);
-   FD_SET(0, &fds);
-   return select(1, &fds, NULL, NULL, &tv);
+   FD_SET(STDIN_FILENO, &fds);
+   set = select(STDIN_FILENO+1, &fds, NULL, NULL, &tv);
+   tcsetattr(0, TCSANOW, &orgTs);
+   return set;
 }
+
 
 static int
 xgetch()

@@ -6,6 +6,7 @@ SMQ, based on the publish - subscribe pattern, provides features similar to othe
 
 **[See the SMQ home page for details](https://realtimelogic.com/products/simplemq/)**
 
+This repository includes the standard SMQ C client library. See the [SharkSSL Repository](https://github.com/RealTimeLogic/SharkSSL) for the secure SMQ client stack (SharkMQ). Use this library when TLS encryption is not required.
 
 # TL;DR; IoT Quickstart
 

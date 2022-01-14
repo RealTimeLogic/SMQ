@@ -51,12 +51,12 @@ $(ODIR)/%$(O) : %.c
 SOURCE = selib.c SMQClient.c
 
 
-examples: $(ODIR) led-smq$(EXT)
+examples: $(ODIR) LED-SMQ$(EXT)
 
 $(ODIR):
 	mkdir $(ODIR)
 
-led-smq$(EXT): $(ODIR)/m2m-led$(O) $(LIBNAME)
+LED-SMQ$(EXT): $(ODIR)/LED-SMQ$(O) $(LIBNAME)
 	$(CC) $(LNKOFT)$@ $< -L. -lSimpleMQ $(EXTRALIBS)
 
 $(LIBNAME):  $(SOURCE:%.c=$(ODIR)/%$(O))

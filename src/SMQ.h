@@ -9,9 +9,9 @@
  ****************************************************************************
  *            HEADER
  *
- *   $Id: SMQ.h 4914 2021-12-01 18:24:30Z wini $
+ *   $Id: SMQ.h 5021 2022-01-13 18:59:01Z wini $
  *
- *   COPYRIGHT:  Real Time Logic LLC, 2014 - 2019
+ *   COPYRIGHT:  Real Time Logic LLC, 2014 - 2022
  *
  *   This software is copyrighted by and is the sole property of Real
  *   Time Logic LLC.  All rights, title, ownership, or other interests in
@@ -116,7 +116,7 @@
 #define SMQ_CREATEACK        -20001
 
 /** #SMQ_createsub response message received via #SMQ_getMessage.
-    \li SMQ::ptid is set to the created Sub Topic ID.
+    \li SMQ::ptid is set to the created Subtopic ID.
     \li SMQ::status is set to zero (0) if the request was accepted and
     a negative value if the request was denied.
  */

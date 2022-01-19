@@ -9,7 +9,7 @@
  ****************************************************************************
  *            HEADER
  *
- *   $Id: SMQ.h 5021 2022-01-13 18:59:01Z wini $
+ *   $Id: SMQ.h 5029 2022-01-16 21:32:09Z wini $
  *
  *   COPYRIGHT:  Real Time Logic LLC, 2014 - 2022
  *
@@ -81,12 +81,6 @@
  */
 #define SMQE_PONGTIMEOUT     -10005
 
-
-/** The SMQ_getMessage call timed out.
- */
-#define SMQE_TIMEOUT         -10100
-
-
 /** @} */ /* end SMQClientErrorCodes */
 
 
@@ -129,6 +123,11 @@
     \li SMQ::status is set to the number of clients subscribed to the topic.
  */
 #define SMQ_SUBCHANGE        -20003
+
+/** The SMQ_getMessage call timed out.
+ */
+#define SMQ_TIMEOUT         -20004
+
 
 /** @} */ /* end SMQClientRespCodes */
 
@@ -517,6 +516,10 @@ int SMQ_unobserve(SMQ* o, U32 tid);
     number of milliseconds you want to wait for incoming messages
     before the timeout triggers. Note: Setting a long timeout may
     interfere with the built in PING timer.
+
+    \returns
+      \li < 0: An error or a control message such as #SMQ_SUBACK
+      \li >= 0: An SMQ message with this length
  */
 int SMQ_getMessage(SMQ* o, U8** msg);
 

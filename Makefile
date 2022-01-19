@@ -39,7 +39,7 @@ ifndef ODIR
 ODIR = obj
 endif
 
-LIBNAME=$(LIBPFX)SimpleMQ$(LIBEXT) 
+LIBNAME=$(LIBPFX)ExampleLib$(LIBEXT) 
 
 CFLAGS+=$(IFT)src $(IFT)examples
 VPATH=src:examples
@@ -47,18 +47,44 @@ VPATH=src:examples
 # Implicit rules for making .o files from .c files
 $(ODIR)/%$(O) : %.c
 	$(CC) $(CFLAGS) $(OFT)$@ $<
+# Implicit rules for making .o files from .cpp files
+$(ODIR)/%$(O) : %.cpp
+	$(CXX) $(CFLAGS) $(OFT)$@ $<
 
 SOURCE = selib.c SMQClient.c
 
+.PHONY : examples clean
 
+ifneq ($(wildcard ../JSON/.*),)
+examples: $(ODIR) LED-SMQ$(EXT) publish$(EXT) subscribe$(EXT)
+VPATH += ../JSON/src
+SOURCE += AllocatorIntf.c\
+	  BaAtoi.c\
+	  BufPrint.c\
+	  JDecoder.c\
+	  JEncoder.c\
+	  JParser.c\
+	  JVal.c
+CFLAGS += -I../JSON/inc -DUSE_JSON=1 -fno-exceptions
+publish$(EXT): $(ODIR)/publish$(O) $(LIBNAME)
+	$(CC) $(LNKOFT)$@ $< -L. -lExampleLib $(EXTRALIBS)
+subscribe$(EXT): $(ODIR)/subscribe$(O) $(LIBNAME)
+	$(CC) $(LNKOFT)$@ $< -L. -lExampleLib $(EXTRALIBS)
+else
 examples: $(ODIR) LED-SMQ$(EXT)
+$(info No JSON directory. Excluding the examples 'publish' and 'subscribe'.)
+endif
 
 $(ODIR):
 	mkdir $(ODIR)
 
 LED-SMQ$(EXT): $(ODIR)/LED-SMQ$(O) $(LIBNAME)
-	$(CC) $(LNKOFT)$@ $< -L. -lSimpleMQ $(EXTRALIBS)
+	$(CC) $(LNKOFT)$@ $< -L. -lExampleLib $(EXTRALIBS)
 
 $(LIBNAME):  $(SOURCE:%.c=$(ODIR)/%$(O))
 	$(AR) $(ARFLAGS) $(AROFT)$@ $^
 	$(RANLIB) $@
+
+clean:
+	rm -rf $(ODIR) $(LIBNAME) LED-SMQ$(EXT) publish$(EXT) subscribe$(EXT)
+

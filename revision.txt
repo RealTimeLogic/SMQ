@@ -1,2 +1,0 @@
-"Cloned from SVN, version:" 
-Revision: 4340

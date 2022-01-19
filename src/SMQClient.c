@@ -9,9 +9,9 @@
  ****************************************************************************
  *   PROGRAM MODULE
  *
- *   $Id: SMQClient.c 4914 2021-12-01 18:24:30Z wini $
+ *   $Id: SMQClient.c 5029 2022-01-16 21:32:09Z wini $
  *
- *   COPYRIGHT:  Real Time Logic LLC, 2014 - 2019
+ *   COPYRIGHT:  Real Time Logic LLC, 2014 - 2022
  *
  *   This software is copyrighted by and is the sole property of Real
  *   Time Logic LLC.  All rights, title, ownership, or other interests in
@@ -126,7 +126,7 @@ SMQ_readFrameHeader(SMQ* o)
       netConvU16((U8*)&o->frameLen, o->buf);
       return 0;
    }
-   o->status = x == 0 ? SMQE_TIMEOUT : x;
+   o->status = x == 0 ? SMQ_TIMEOUT : x;
    return o->status;
 }
 
@@ -152,7 +152,7 @@ SMQ_readFrame(SMQ* o, int hasFH)
    } while(x > 0 && o->rBufIx < o->frameLen);
    SMQ_resetRB(o);
    if(x > 0) return 0;
-   o->status = x == 0 ? SMQE_TIMEOUT : x;
+   o->status = x == 0 ? SMQ_TIMEOUT : x;
    return o->status;
 }
 
@@ -166,7 +166,7 @@ SMQ_readData(SMQ* o, U16 size)
       o->rBufIx += (U16)x; /* assume it's OK */
    } while(x > 0 && o->rBufIx < size);
    if(x > 0) return o->rBufIx;
-   o->status = x == 0 ? SMQE_TIMEOUT : x;
+   o->status = x == 0 ? SMQ_TIMEOUT : x;
    return o->status;
 }
 
@@ -554,7 +554,7 @@ SMQ_getMessage(SMQ* o, U8** msg)
    if(SMQ_readFrameHeader(o))
    {
       /* Timeout is not an error in between frames */
-      if(o->status == SMQE_TIMEOUT)
+      if(o->status == SMQ_TIMEOUT)
       {
          if(o->pingTmoCounter >= 0)
          {
@@ -577,7 +577,6 @@ SMQ_getMessage(SMQ* o, U8** msg)
             if(o->pingTmoCounter >= 0)
                return SMQE_PONGTIMEOUT;
          }
-         return 0;
       }
       return o->status;
    }

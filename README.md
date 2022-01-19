@@ -166,7 +166,7 @@ can use the secure SharkMQ library or the standard SMQ library. The
 example is using a TLS connection when compiled with SharkMQ and a
 standard TCP/IP connection when compiled with SMQ.
 
-* [SMQ API Documentation]((https://realtimelogic.com/ba/doc/en/C/reference/html/group__SMQClient.html)
+* [SMQ API Documentation](https://realtimelogic.com/ba/doc/en/C/reference/html/group__SMQClient.html)
 * [SharkMQ API Documentation](https://realtimelogic.com/ba/doc/en/C/shark/structSharkMQ.html)
 
 The standard SMQ stack includes a compatibility API that enables

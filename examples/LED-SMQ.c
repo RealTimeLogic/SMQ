@@ -10,7 +10,7 @@
  ****************************************************************************
  *   PROGRAM MODULE
  *
- *   $Id: LED-SMQ.c 5021 2022-01-13 18:59:01Z wini $
+ *   $Id: LED-SMQ.c 5029 2022-01-16 21:32:09Z wini $
  *
  *   COPYRIGHT:  Real Time Logic LLC, 2014 - 2022
  *
@@ -616,6 +616,30 @@ m2mled(SharkMQ* smq, SharkSslCon* scon,
          switch(len)
          {  
             /* Control messages */
+            case SMQ_TIMEOUT:
+            {
+               int x; /* used for storing ledId and temperature */
+               int on;
+               if(setLedFromDevice(&x,&on)) /* If a local button was pressed */
+               { /* Publish to all subscribed browsers and set the LED on/off */
+                  outData[0] = (U8)x; /* x is ledId */
+                  outData[1] = (U8)on;
+                  /* Publish to "/m2m/led/device", subtopic "led" */
+                  SharkMQ_publish(smq, outData, 2, deviceTid, ledSubTid);
+                  setLed(x, on); /* set the LED on/off */
+               }
+#ifdef ENABLE_TEMP
+               x = getTemp();
+               if(x != (int)temperature)
+               {
+                  temperature = (S16)x;
+                  outData[0] = (U8)(temperature >> 8);
+                  outData[1] = (U8)temperature;
+                  SharkMQ_publish(smq, outData, 2, tempTid, 0);
+               }
+#endif
+            }
+            break;
 
             /* Manage responses for create, createsub, and subscribe */
             case SMQ_SUBACK: /* ACK: "/m2m/led/display" */
@@ -632,6 +656,7 @@ m2mled(SharkMQ* smq, SharkSslCon* scon,
                   SharkMQ_observe(smq, deviceTid);
                }
                break;
+
             case SMQ_CREATESUBACK: /* We get a total of two messages */
                 /* We get two suback messages ("devinfo" and "led") */
                if( ! strcmp("led", (char*)msg ) )
@@ -673,7 +698,7 @@ m2mled(SharkMQ* smq, SharkSslCon* scon,
                return 0;
          }
       }
-      else if(len > 0)
+      else
       {
          if(smq->tid == displayTid) /* topic "display" */
          {
@@ -701,29 +726,6 @@ m2mled(SharkMQ* smq, SharkSslCon* scon,
             xprintf(("Received unknown tid %X\n", smq->tid));
             return 0;
          }
-      }
-      else /* timeout */
-      {
-         int x; /* used for storing ledId and temperature */
-         int on;
-         if(setLedFromDevice(&x,&on)) /* If a local button was pressed */
-         {  /* Publish to all subscribed browsers and set the LED on/off */
-            outData[0] = (U8)x; /* x is ledId */
-            outData[1] = (U8)on;
-            /* Publish to "/m2m/led/device", subtopic "led" */
-            SharkMQ_publish(smq, outData, 2, deviceTid, ledSubTid);
-            setLed(x, on); /* set the LED on/off */
-         }
-#ifdef ENABLE_TEMP
-         x = getTemp();
-         if(x != (int)temperature)
-         {
-            temperature = (S16)x;
-            outData[0] = (U8)(temperature >> 8);
-            outData[1] = (U8)temperature;
-            SharkMQ_publish(smq, outData, 2, tempTid, 0);
-         }
-#endif
       }
    }
 }

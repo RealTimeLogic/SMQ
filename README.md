@@ -23,6 +23,8 @@ management.
 * The IoT example LED-SMQ.c is a copy of the SMQ example from
   SharkSSL. The example can use the secure SharkMQ library or the
   standard SMQ library (this library).
+* A C and C++ example is included with the
+  [SMQ Controlled Light Switch Example](https://github.com/RealTimeLogic/LSP-Examples/tree/master/SMQ-examples/LightSwitch-And-LightBulb-App#light-bulb-c-code)
 
 ## Introductory SMQ Examples
 

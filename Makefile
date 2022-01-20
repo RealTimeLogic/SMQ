@@ -56,7 +56,7 @@ SOURCE = selib.c SMQClient.c
 .PHONY : examples clean
 
 ifneq ($(wildcard ../JSON/.*),)
-examples: $(ODIR) LED-SMQ$(EXT) publish$(EXT) subscribe$(EXT)
+examples: $(ODIR) publish$(EXT) subscribe$(EXT) bulb$(EXT) LED-SMQ$(EXT)
 VPATH += ../JSON/src
 SOURCE += AllocatorIntf.c\
 	  BaAtoi.c\
@@ -71,7 +71,7 @@ publish$(EXT): $(ODIR)/publish$(O) $(LIBNAME)
 subscribe$(EXT): $(ODIR)/subscribe$(O) $(LIBNAME)
 	$(CC) $(LNKOFT)$@ $< -L. -lExampleLib $(EXTRALIBS)
 else
-examples: $(ODIR) LED-SMQ$(EXT)
+examples: $(ODIR) bulb$(EXT) LED-SMQ$(EXT)
 $(info No JSON directory. Excluding the examples 'publish' and 'subscribe'.)
 endif
 
@@ -81,10 +81,13 @@ $(ODIR):
 LED-SMQ$(EXT): $(ODIR)/LED-SMQ$(O) $(LIBNAME)
 	$(CC) $(LNKOFT)$@ $< -L. -lExampleLib $(EXTRALIBS)
 
+bulb$(EXT): $(ODIR)/bulb$(O) $(LIBNAME)
+	$(CC) $(LNKOFT)$@ $< -L. -lExampleLib $(EXTRALIBS)
+
 $(LIBNAME):  $(SOURCE:%.c=$(ODIR)/%$(O))
 	$(AR) $(ARFLAGS) $(AROFT)$@ $^
 	$(RANLIB) $@
 
 clean:
-	rm -rf $(ODIR) $(LIBNAME) LED-SMQ$(EXT) publish$(EXT) subscribe$(EXT)
+	rm -rf $(ODIR) $(LIBNAME) LED-SMQ$(EXT) bulb$(EXT) publish$(EXT) subscribe$(EXT)
 

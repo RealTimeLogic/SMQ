@@ -18,15 +18,14 @@ management.
 
 # SMQ C/C++ Examples
 
-* The two introductory examples publish.cpp and subscribe.cpp are
-  recommended for any C or C++ developer new to the SMQ protocol.
-* The IoT example LED-SMQ.c is a copy of the SMQ example from
-  SharkSSL. The example can use the secure SharkMQ library or the
-  standard SMQ library (this library).
-* A C and C++ example is included with the
-  [SMQ Controlled Light Switch Example](https://github.com/RealTimeLogic/LSP-Examples/tree/master/SMQ-examples/LightSwitch-And-LightBulb-App#light-bulb-c-code)
+The following examples are listed in the recommended studying order:
 
-## Introductory SMQ Examples
+1. The two introductory examples publish.cpp and subscribe.cpp are
+   recommended for any C or C++ developer new to the SMQ protocol.
+2. The Light Bulb Example is the companion example for an online tutorial.
+3. The IoT example LED-SMQ.c is the companion example for an online tutorial.
+
+## 1: Introductory SMQ Examples
 
 The two introductory examples [publish.cpp](examples/publish.cpp) and
 [subscribe.cpp](examples/subscribe.cpp) use the C++ API, which is
@@ -37,7 +36,7 @@ initially read the introduction to the
 The examples require the JSON library. The following shows how to
 fetch the two repositories and how to compile all examples on Linux:
 
-```
+``` shell
 sudo apt install g++ gcc make git
 git clone https://github.com/RealTimeLogic/JSON.git
 git clone https://github.com/RealTimeLogic/SMQ.git
@@ -58,13 +57,13 @@ the same computer. Run the broker as follows:
 
 Linux:
 
-```
+``` shell
 sudo ./mako -u `whoami` -l::broker
 ```
 
 Windows:
 
-```
+``` shell
 mako -l::broker
 ```
 
@@ -72,7 +71,7 @@ The file [broker/.preload](broker/.preload) will now be loaded by the
 Mako Server and you will see several lines being printed, including
 the following:
 
-```
+``` shell
 Server listening on IPv6 port 80
 Server listening on IPv4 port 80
 Loading certificate MakoServer
@@ -154,7 +153,31 @@ prior to looking at the source code.
 
 ![Using JSON with Real Time IoT Communication](https://realtimelogic.com/images/json-iot.jpg)
 
-## SMQ IoT Example
+## 2: Light Bulb Example
+
+The Light Bulb Example is the companion example for the tutorial
+[Modern Approach to Embedding a Web Server in a Device](https://realtimelogic.com/articles/Modern-Approach-to-Embedding-a-Web-Server-in-a-Device).
+
+Two identical examples are provided: [bulb.c](examples/bulb.cp) and
+[bulb.cpp](examples/bulb.cpp). You can compare the two examples, which
+makes it easy to see the difference between the C and C++ API.
+
+The light bulb connects to our public SMQ test broker. You also need the companion
+[JavaScript code](https://github.com/RealTimeLogic/LSP-Examples/tree/master/SMQ-examples/LightSwitch-And-LightBulb-App)
+when testing this example.
+
+Start the Light Bulb Example as follows:
+
+``` shell
+./bulb
+```
+
+When you have initially tested the C code and the JavaScript code with
+the public test broker, change the URL in all code to your own private
+broker you set up in example 1.
+
+
+## 3: SMQ IoT Example
 
 The IoT example shows how one can use the SMQ protocol to design a
 complete IoT solution. The following video shows how to use the IoT

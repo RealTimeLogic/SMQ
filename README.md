@@ -18,12 +18,15 @@ management.
 
 # SMQ C/C++ Examples
 
-The following examples are listed in the recommended studying order:
+The following examples are listed in the recommended study order:
 
-1. The two introductory examples publish.cpp and subscribe.cpp are
-   recommended for any C or C++ developer new to the SMQ protocol.
-2. The Light Bulb Example is the companion example for an online tutorial.
-3. The IoT example LED-SMQ.c is the companion example for an online tutorial.
+1. The [two introductory](#1-introductory-smq-examples) examples
+   publish.cpp and subscribe.cpp are recommended for any C or C++
+   developer new to the SMQ protocol.
+2. The [Light Bulb Example](#2-light-bulb-example) is the companion
+   example for an online tutorial.
+3. The [IoT example LED-SMQ.c](#3-smq-iot-example) is the companion
+   example for an online tutorial.
 
 ## 1: Introductory SMQ Examples
 
@@ -158,11 +161,13 @@ prior to looking at the source code.
 The Light Bulb Example is the companion example for the tutorial
 [Modern Approach to Embedding a Web Server in a Device](https://realtimelogic.com/articles/Modern-Approach-to-Embedding-a-Web-Server-in-a-Device).
 
-Two identical examples are provided: [bulb.c](examples/bulb.cp) and
+Two identical examples are provided: [bulb.c](examples/bulb.c) and
 [bulb.cpp](examples/bulb.cpp). You can compare the two examples, which
 makes it easy to see the difference between the C and C++ API.
 
-The light bulb connects to our public SMQ test broker. You also need the companion
+The light bulb connects to our
+[public SMQ test broker](https://simplemq.com/). You also need the
+companion
 [JavaScript code](https://github.com/RealTimeLogic/LSP-Examples/tree/master/SMQ-examples/LightSwitch-And-LightBulb-App)
 when testing this example.
 
@@ -174,7 +179,7 @@ Start the Light Bulb Example as follows:
 
 When you have initially tested the C code and the JavaScript code with
 the public test broker, change the URL in all code to your own private
-broker you set up in example 1.
+broker; the broker you set up in [example 1](#1-introductory-smq-examples).
 
 
 ## 3: SMQ IoT Example

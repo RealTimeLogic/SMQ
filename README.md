@@ -177,6 +177,10 @@ Start the Light Bulb Example as follows:
 ./bulb
 ```
 
+The following screenshot shows how to compile and run the example.
+
+![How to compile and run the IoT light bulb example](https://realtimelogic.com/blogmedia/ModernApproachEmbeddedWebServer/bulb-c-code.png)
+
 When you have initially tested the C code and the JavaScript code with
 the public test broker, change the URL in all code to your own private
 broker; the broker you set up in [example 1](#1-introductory-smq-examples).

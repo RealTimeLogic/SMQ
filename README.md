@@ -9,6 +9,8 @@ the pub/sub pattern with additional features such as one-to-one
 messaging and sender's address, which are typically required in device
 management.
 
+![SMQ IoT Protocol](https://makoserver.net/GZ/images/SMQ-IoT-Broker.svg)
+
 **See the following for details:**
 * [SMQ Home Page](https://realtimelogic.com/products/simplemq/)
 * [SMQ Documentation](https://realtimelogic.com/ba/doc/?url=SMQ.html)

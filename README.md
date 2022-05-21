@@ -106,6 +106,8 @@ Start the publisher and subscriber examples in separate terminal
 windows. The publisher publishes data and the subscriber consumes
 data.
 
+**See the following short video for details on running the example bundle: https://youtu.be/YQjBWQ2PZvM**
+
 ### Simplified C/C++ Design
 
 The two C++ examples highlight several features that simplify
@@ -156,7 +158,7 @@ embedded devices. A recommendation is to read the
 [JSON Tutorial](https://realtimelogic.com/ba/doc/en/C/reference/html/md_en_C_md_JSON.html)
 prior to looking at the source code.
 
-![Using JSON with Real Time IoT Communication](https://realtimelogic.com/images/json-iot.jpg)
+![Using JSON with Real Time IoT Communication](https://realtimelogic.com//GZ/images/json-iot.svg)
 
 ## 2: Light Bulb Example
 

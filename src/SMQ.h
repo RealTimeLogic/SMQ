@@ -566,12 +566,12 @@ inline int SMQ::subscribe(const char* topic) {
    return SMQ_subscribe(this, topic);
 }
 
-inline int SMQ::unsubscribe(U32 tid) {
-   return SMQ_unsubscribe(this, tid);
+inline int SMQ::unsubscribe(U32 _tid) {
+   return SMQ_unsubscribe(this, _tid);
 }
 
-inline int SMQ::publish(const void* data, int len, U32 tid, U32 subtid) {
-   return SMQ_publish(this, data, len, tid, subtid);
+inline int SMQ::publish(const void* data, int len, U32 _tid, U32 _subtid) {
+   return SMQ_publish(this, data, len, _tid, _subtid);
 }
 
 inline int SMQ::wrtstr(const char* str) {
@@ -582,16 +582,16 @@ inline int SMQ::write( const void* data, int len) {
    return SMQ_write(this, data, len);
 }
 
-inline int SMQ::pubflush(U32 tid, U32 subtid) {
-   return SMQ_pubflush(this, tid, subtid);
+inline int SMQ::pubflush(U32 _tid, U32 _subtid) {
+   return SMQ_pubflush(this, _tid, _subtid);
 }
 
-inline int SMQ::observe(U32 tid) {
-   return SMQ_observe(this, tid);
+inline int SMQ::observe(U32 _tid) {
+   return SMQ_observe(this, _tid);
 }
 
-inline int SMQ::unobserve(U32 tid) {
-   return SMQ_unobserve(this, tid);
+inline int SMQ::unobserve(U32 _tid) {
+   return SMQ_unobserve(this, _tid);
 }
 
 inline int SMQ::getMessage(U8** msg) {

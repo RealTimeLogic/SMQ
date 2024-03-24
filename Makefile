@@ -55,6 +55,17 @@ SOURCE = selib.c SMQClient.c
 
 .PHONY : examples clean
 
+CXX_AVAILABLE := $(shell command -v g++x)
+
+# Conditional compilation based on g++ availability
+ifeq ($(CXX_AVAILABLE),)
+
+$(info g++ not found, assuming gcc is installed. Compiling the LED-SMQ example.)
+examples: LED-SMQ$(EXT)
+
+else
+# g++ available, proceed as normal
+
 ifneq ($(wildcard ../JSON/.*),)
 examples: $(ODIR) publish$(EXT) subscribe$(EXT) bulb$(EXT) LED-SMQ$(EXT)
 VPATH += ../JSON/src
@@ -73,6 +84,8 @@ subscribe$(EXT): $(ODIR)/subscribe$(O) $(LIBNAME)
 else
 examples: $(ODIR) bulb$(EXT) LED-SMQ$(EXT)
 $(info No JSON directory. Excluding the examples 'publish' and 'subscribe'.)
+endif
+
 endif
 
 $(ODIR):

@@ -61,7 +61,7 @@ CXX_AVAILABLE := $(shell command -v g++x)
 ifeq ($(CXX_AVAILABLE),)
 
 $(info g++ not found, assuming gcc is installed. Compiling the LED-SMQ example.)
-examples: LED-SMQ$(EXT)
+examples: $(ODIR) LED-SMQ$(EXT)
 
 else
 # g++ available, proceed as normal

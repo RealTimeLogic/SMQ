@@ -1,0 +1,31 @@
+local fmt=string.format
+
+print"-------------- CREATING BROKER -----------------"
+
+-- The following two are used by smq.lsp
+app.smq = require"smq.hub"
+app.broker = smq.create()
+local broker=app.broker
+
+local topics = { -- Array starting at 1
+   "", -- #1 is reserved by broker; it is the etid of the broker's SMQ client.
+   "EXAMPLE_STRUCT_A",
+   "EXAMPLE_STRUCT_B",
+   "EXAMPLE_JSTRUCT_A",
+   "EXAMPLE_JSON_ARRAY"
+}
+
+for tid,topic in ipairs(topics) do
+   if tid ~= 1 then
+      print(fmt("Registering topic %-20s with tid %d",topic,tid))
+      assert(broker:create(topic,tid) == tid)
+   end
+end
+print("\nFor your C program:")
+for tid,topic in ipairs(topics) do
+   if tid ~= 1 then
+      print(fmt("#define %-20s %d",topic,tid))
+   end
+end
+
+print"------------------------------------------------"
